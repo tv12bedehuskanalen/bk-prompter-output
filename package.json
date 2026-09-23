@@ -1,0 +1,81 @@
+{
+  "name": "bk-prompter",
+  "version": "0.1.0",
+  "description": "Synkronisert teleprompter for redaksjon og studio",
+  "main": "desktop/main.cjs",
+  "private": true,
+  "scripts": {
+    "start": "node server/index.cjs",
+    "desktop": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "check": "node --check server/index.cjs && node --check public/app.js && node --check desktop/main.cjs",
+    "test:browser": "node scripts/browser-check.cjs",
+    "format": "prettier --write public/*.{js,css,html} config/*.cjs server/*.cjs desktop/*.{cjs,js,html} test/*.cjs scripts/*.cjs",
+    "preversion": "npm run check && npm test",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "test:desktop": "node scripts/desktop-check.cjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "express": "^5.1.0",
+    "mammoth": "^1.10.0",
+    "multer": "^2.0.2",
+    "osc": "^2.4.5",
+    "rtf-parser": "^1.3.3",
+    "sanitize-html": "^2.17.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.0.12",
+    "prettier": "^3.9.9"
+  },
+  "build": {
+    "appId": "no.bk.prompter",
+    "productName": "BK Prompter",
+    "files": [
+      "desktop/**/*",
+      "server/**/*",
+      "public/**/*",
+      "package.json",
+      "config/**/*"
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "public/branding/icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "public/branding/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "${productName}-${version}-${os}-${arch}-Setup.${ext}"
+    },
+    "npmRebuild": false,
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "portable": {
+      "artifactName": "${productName}-${version}-${os}-${arch}-Portable.${ext}"
+    }
+  },
+  "overrides": {
+    "osc": {
+      "ws": "^8.21.0"
+    }
+  },
+  "author": "Bedehuskanalen"
+}
