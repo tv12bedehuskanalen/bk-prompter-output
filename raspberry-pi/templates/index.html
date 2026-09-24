@@ -72,6 +72,12 @@
       input { width: 100%; border: 1px solid #34484c; border-radius: 8px; background: #0a1416; color: var(--text); padding: 13px 14px; font: inherit; outline-offset: 3px; }
       input:focus { border-color: var(--accent); outline: 2px solid #32c6cb38; }
       .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+      .software { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 11px; color: var(--muted); }
+      .software button { min-height: 32px; padding: 6px 10px; font-size: 11px; }
+      .progress { display: none; height: 4px; margin-top: 10px; overflow: hidden; border-radius: 4px; background: #263b3e; }
+      .progress.active { display: block; }
+      .progress::after { content: ""; display: block; width: 35%; height: 100%; background: var(--accent); animation: progress 1.2s infinite ease-in-out; }
+      @keyframes progress { from { transform: translateX(-120%); } to { transform: translateX(320%); } }
       button { min-height: 43px; border: 1px solid #303f42; border-radius: 8px; background: #1b2d30; color: var(--text); padding: 10px 14px; font: inherit; font-weight: 700; cursor: pointer; transition: background .15s, transform .15s; }
       button:hover { background: #263c40; }
       button:active { transform: translateY(1px); }
@@ -106,13 +112,14 @@
           <div class="actions">
             <button class="primary" type="button" data-action="update">Oppdater output</button>
             <button type="button" data-action="refresh">Last inn på nytt</button>
-            <button type="button" data-action="software-update">Oppdater programvare</button>
             <button class="danger" type="button" data-action="reboot">Restart Pi</button>
           </div>
           <p id="message" role="status" aria-live="polite">{{ update_status }}</p>
+          <div class="software"><span id="softwareStatus">{{ update_available and ('Ny versjon: ' ~ update_available) or ('Versjon ' ~ version) }}</span><button type="button" data-action="software-update">Oppdater</button></div>
+          <div class="progress" id="updateProgress" aria-hidden="true"></div>
         </div>
       </section>
-      <footer>{{ version }} // © Bedehuskanalen 2026</footer>
+      <footer>© Bedehuskanalen 2026</footer>
     </main>
     <script>
       const input = document.getElementById("urlInput");
@@ -120,6 +127,8 @@
       const message = document.getElementById("message");
       const preview = document.getElementById("preview");
       const previewEmpty = document.getElementById("previewEmpty");
+      const softwareStatus = document.getElementById("softwareStatus");
+      const updateProgress = document.getElementById("updateProgress");
       let previewTimer;
       function updatePreview() {
         const value = input.value.trim();
@@ -157,6 +166,7 @@
         const button = document.querySelector(`[data-action="${action}"]`);
         if (action === "reboot" && !confirm("Start Raspberry Pi på nytt?")) return;
         if (action === "software-update" && !confirm("Se etter og installer programvareoppdatering?")) return;
+        if (action === "software-update") updateProgress.classList.add("active");
         if (action === "refresh") {
           input.value = outputUrl;
           updatePreview();
@@ -183,6 +193,10 @@
       window.addEventListener("pageshow", resetToOutput);
       resetToOutput();
       fitPreview();
+      fetch("/update-status", { cache: "no-store" }).then(r => r.json()).then(data => {
+        if (data.available) softwareStatus.textContent = `Ny versjon: ${data.available}`;
+        else if (data.status && data.status.startsWith("Updated from")) message.textContent = data.status;
+      }).catch(() => {});
     </script>
   </body>
 </html>

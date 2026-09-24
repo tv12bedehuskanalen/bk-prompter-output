@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for
 import os
 import socket
 import subprocess
+import threading
+import time
 
 app = Flask(__name__)
 DEFAULT_URL = "http://10.144.144.162:7890/output"
@@ -10,6 +12,7 @@ PORT = 8443
 VERSION_FILE = os.path.join(os.path.dirname(__file__), "VERSION")
 UPDATE_SCRIPT = os.path.join(os.path.dirname(__file__), "update-bk-prompter.sh")
 UPDATE_STATUS = os.path.join(os.path.dirname(__file__), "update-status")
+UPDATE_AVAILABLE = os.path.join(os.path.dirname(__file__), "update-available")
 
 
 def app_version():
@@ -24,6 +27,15 @@ def site_name():
     """BK-AES-PROMPTER becomes BK AES; other hostnames remain readable."""
     parts = socket.gethostname().split("-")
     return " ".join(parts[:2]).upper() if len(parts) >= 2 else socket.gethostname().upper()
+
+
+def update_check_loop():
+    while True:
+        try:
+            subprocess.run([UPDATE_SCRIPT, "--check"], timeout=60, check=False)
+        except (OSError, subprocess.SubprocessError):
+            pass
+        time.sleep(86400)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -49,11 +61,32 @@ def index():
             update_status = status_file.read().strip()
     except OSError:
         update_status = ""
-    return render_template("index.html", current_url=current_url, site_name=site_name(), version=app_version(), update_status=update_status)
+    try:
+        with open(UPDATE_AVAILABLE, encoding="utf-8") as available_file:
+            update_available = available_file.read().strip()
+    except OSError:
+        update_available = ""
+    return render_template("index.html", current_url=current_url, site_name=site_name(), version=app_version(), update_status=update_status, update_available=update_available)
+
+
+@app.get("/update-status")
+def update_status_api():
+    available = ""
+    status = ""
+    for path, target in ((UPDATE_AVAILABLE, "available"), (UPDATE_STATUS, "status")):
+        try:
+            with open(path, encoding="utf-8") as value_file:
+                value = value_file.read().strip()
+            if target == "available": available = value
+            else: status = value
+        except OSError:
+            pass
+    return {"available": available, "status": status, "version": app_version()}
 
 
 if __name__ == "__main__":
     if not os.path.exists(URL_FILE):
         with open(URL_FILE, "w", encoding="utf-8") as url_file:
             url_file.write(DEFAULT_URL)
+    threading.Thread(target=update_check_loop, daemon=True).start()
     app.run(host="127.0.0.1", port=PORT)

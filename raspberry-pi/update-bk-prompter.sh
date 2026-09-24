@@ -5,6 +5,7 @@ CONFIG="$SCRIPT_DIR/updater.conf"
 [[ -r "$CONFIG" ]] && . "$CONFIG"
 INSTALL_DIR=${BK_INSTALL_DIR:-$SCRIPT_DIR}
 STATUS_FILE="$INSTALL_DIR/update-status"
+AVAILABLE_FILE="$INSTALL_DIR/update-available"
 : "${GITHUB_REPOSITORY:?Set GITHUB_REPOSITORY in $CONFIG (owner/repository)}"
 mkdir -p "$INSTALL_DIR"
 echo "Checking for updates…" > "$STATUS_FILE"
@@ -16,6 +17,11 @@ release=$(curl "${curl_args[@]}" "$api")
 tag=$(printf '%s' "$release" | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')
 current=$(tr -d 'v[:space:]' < "$INSTALL_DIR/VERSION" 2>/dev/null || true)
 latest=${tag#v}
+if [[ "${1:-}" == "--check" ]]; then
+  if [[ "$current" == "$latest" ]]; then rm -f "$AVAILABLE_FILE"; echo "Up to date ($tag)." > "$STATUS_FILE";
+  else printf '%s\n' "$tag" > "$AVAILABLE_FILE"; echo "Update available: $tag." > "$STATUS_FILE"; fi
+  exit 0
+fi
 if [[ "$current" == "$latest" ]]; then echo "Already up to date ($tag)." > "$STATUS_FILE"; exit 0; fi
 archive="$tmp/release.tar.gz"
 curl "${curl_args[@]}" -L "https://github.com/$GITHUB_REPOSITORY/archive/refs/tags/$tag.tar.gz" -o "$archive"
@@ -33,3 +39,4 @@ nohup python3 "$INSTALL_DIR/app.py" >> "$INSTALL_DIR/webserver.log" 2>&1 &
 sleep 2
 curl -fsS http://127.0.0.1:8443/ >/dev/null || { cp -a "$backup"/. "$INSTALL_DIR"/; exit 1; }
 echo "Updated from v$current to $tag." > "$STATUS_FILE"
+rm -f "$AVAILABLE_FILE"
