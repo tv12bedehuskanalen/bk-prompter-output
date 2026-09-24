@@ -14,3 +14,5 @@ SD Card Images/*.img.xz
 SD Card Images/*.img.xz.sha256
 SD Card Images/*.log
 SD Card Images/failed-*.xz
+
+SD Card Images/installer/__pycache__/
