@@ -170,7 +170,7 @@
           const response = await fetch("/", { method: "POST", body: data });
           if (!response.ok) throw new Error();
           if (action === "update" || action === "refresh") refreshPreview();
-          message.textContent = action === "update" ? "Output oppdatert." : action === "refresh" ? "Output lastes inn på nytt." : action === "software-update" ? "Oppdatering startet …" : "Starter Raspberry Pi …";
+          message.textContent = action === "update" ? "Output oppdatert." : action === "refresh" ? "Output lastes inn på nytt." : action === "software-update" ? "Programvareoppdatering startet …" : "Starter Raspberry Pi …";
         } catch (_) { message.textContent = "Kunne ikke nå kontrolltjenesten. Prøv igjen."; }
         finally { if (action !== "reboot" && action !== "software-update") button.disabled = false; }
       }
