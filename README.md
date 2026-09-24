@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # BK Prompter
 
 An offline-first, Norwegian teleprompter for Bedehuskanalen. Version **0.5.0** adds individual screen layouts and live links to shared presets.
@@ -143,3 +144,10 @@ Future online project editing belongs in a remote project repository adapter. Th
 Åpning av et program viser prosjektlogo, prosjektnavn og programnavn til et manus lastes via Last inn eller OSC. Blackout i editoren og mobilkontrollen gjør alle utganger svarte; avspillingen fortsetter med samme posisjon og hastighet. OSC: `/prompter/blackout` med 1 for på, 0 for av, eller uten verdi for å veksle.
 
 Lesepunkt under Skjermer har linjetykkelse (0 skjuler linjen), pilfarge og pilstørrelse. Linjeavstand kan settes fra 0,5 til 2,5; under 1 gir tettere tekst og kan gi overlapp.
+=======
+# BK Prompter Output
+
+<img width="868" height="895" alt="image" src="https://github.com/user-attachments/assets/a316e497-4bef-4e36-834a-7250f3e53d14" />
+
+Raspberry Pi program som sender fullskjerm nettside ut på HDMI med web-GUI for oppsett av URL
+>>>>>>> b3d02c331c85329a102a705cc6658bec8f829d6d
