@@ -588,16 +588,16 @@ p {
   left: 0;
   right: 0;
   pointer-events: none;
-  border-top: 1px solid #32c6cb33;
+  border-top: var(--guide-thickness, 1px) solid var(--guide-line-color, #32c6cb33);
 }
 .guide:before {
   content: "";
   position: absolute;
   left: 1%;
-  top: -7px;
-  border-left: 10px solid var(--accent);
-  border-top: 7px solid transparent;
-  border-bottom: 7px solid transparent;
+  top: calc(var(--guide-thickness, 1px) * -0.5 - var(--guide-size, 10px) * 0.7);
+  border-left: var(--guide-size, 10px) solid var(--guide-color, var(--accent));
+  border-top: calc(var(--guide-size, 10px) * 0.7) solid transparent;
+  border-bottom: calc(var(--guide-size, 10px) * 0.7) solid transparent;
 }
 .output {
   position: fixed;
@@ -2259,7 +2259,7 @@ dialog select {
   justify-content: flex-start;
 }
 .script-card.on-air {
-  border-color: #d7696080 !important;
+  border-color: #e34f54 !important;
   box-shadow: 0 0 0 1px #d7696022;
 }
 .script-card.selected.on-air {
@@ -2892,3 +2892,34 @@ dialog select {
   display: block;
   margin-bottom: 10px;
 }
+
+/* Output state overlays also appear in the readable operator previews. */
+.blackout-button { width: 100%; margin: 12px 0; }
+.blackout-button.active { background: #b92f39; border-color: #e34f54; color: white; }
+.standby-card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3%; padding: 8%; background: #000; color: #fff; text-align: center; z-index: 2; }
+.standby-card[hidden] { display: none; }
+.standby-card img { max-width: 55%; max-height: 35%; object-fit: contain; }
+.standby-card strong { font-size: clamp(20px, 4vw, 64px); }
+.standby-card span { font-size: clamp(16px, 3vw, 48px); }
+.standby .guide { visibility: hidden; }
+.blackout-cover { display: none; position: absolute; inset: 0; background: #000; z-index: 10; }
+.blacked-out .blackout-cover { display: block; }
+
+.field input.switch[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; position: relative;
+  width: 46px; height: 28px; min-width: 46px; padding: 0;
+  border: 0; border-radius: 20px; background: #445054;
+  cursor: pointer; transition: background 150ms;
+}
+.field input.switch::before {
+  content: ""; position: absolute; width: 22px; height: 22px;
+  left: 3px; top: 3px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px #0005; transition: transform 150ms;
+}
+.field input.switch:checked { background: var(--accent); }
+.field input.switch:checked::before { transform: translateX(18px); }
+.field input.switch:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+.options-disabled { opacity: .35; }
+.options-disabled input, .options-disabled output { cursor: not-allowed; }
+
+.rundown-pane .script-card.on-air, .rundown-pane .script-card.selected.on-air { border: 3px solid #e34f54; }

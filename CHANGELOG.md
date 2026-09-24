@@ -1,3 +1,13 @@
+# 0.6.0
+
+- Blackout i editor og mobilkontroll, med OSC /prompter/blackout (1/0). Avspilling fortsetter bak svart utgang.
+- Åpning av program viser prosjektlogo og titler til et manus lastes.
+- Direkte tallinntasting i eksisterende tallvisninger ved skyveknappene.
+- Sentrert pil, linjetykkelse opptil 100 px, egen linjefarge og alpha.
+- Av/på-bryter for lesemarkør, med deaktiverte innstillinger når av.
+- Tykkere rød ramme rundt LIVE-manus.
+- Justerbar linjetykkelse, pilfarge og pilstørrelse. Linjeavstand ned til 0,5.
+
 # Changelog
 
 ## 0.5.0

@@ -18,6 +18,7 @@ function settingsWorkspace() {
     ["next", "—", "Neste manus"],
     ["previous", "—", "Forrige manus"],
     ["nextChapter", "—", "Neste kapittel"],
+    ["blackout", "1 / 0", "Svart utgang på / av (uten verdi: veksle)"],
     ["hold", "—", "Hold pause"],
     ["release", "—", "Slipp pause"],
     ["state", "—", "Transportstatus"],

@@ -137,3 +137,9 @@ npm run dist:win
 The app is for a trusted LAN and has no user authentication. Control locks coordinate operators; they are not an access-control/security boundary. Do not expose the server to the public internet.
 
 Future online project editing belongs in a remote project repository adapter. The launcher, project cache, playback engine, OSC and client synchronization stay local and continue operating without that service. No cloud integration is implemented in this version.
+
+### Blackout og startvisning
+
+Åpning av et program viser prosjektlogo, prosjektnavn og programnavn til et manus lastes via Last inn eller OSC. Blackout i editoren og mobilkontrollen gjør alle utganger svarte; avspillingen fortsetter med samme posisjon og hastighet. OSC: `/prompter/blackout` med 1 for på, 0 for av, eller uten verdi for å veksle.
+
+Lesepunkt under Skjermer har linjetykkelse (0 skjuler linjen), pilfarge og pilstørrelse. Linjeavstand kan settes fra 0,5 til 2,5; under 1 gir tettere tekst og kan gi overlapp.

@@ -18,5 +18,10 @@ module.exports = {
     flip: false,
     guide: true,
     guidePosition: 30,
+    guideThickness: 1,
+    guideLineColor: "#32c6cb",
+    guideOpacity: 20,
+    guideColor: "#32c6cb",
+    guideSize: 10,
   },
 };

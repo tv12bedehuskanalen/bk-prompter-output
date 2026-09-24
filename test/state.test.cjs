@@ -630,3 +630,26 @@ test("older screens inherit saved appearance on upgrade without creating preset 
   assert.equal(engine.screenSettings("1").fontSize, 76);
   assert.equal(engine.data.screens[0].presetId, null);
 });
+
+test("program standby, blackout and compact guide settings", () => {
+  const { engine: e, advance } = setup();
+  const { p, e: program, s } = e.current();
+  e.control("a", "play");
+  advance(1000);
+  e.control("a", "blackout", true);
+  assert.equal(e.snapshot().transport.blackout, true);
+  assert.equal(e.position(), 60);
+  assert.equal(e.data.transport.playing, true);
+  e.data.lock = { owner: "a" };
+  assert.throws(() => e.control("b", "blackout"));
+  e.control("a", "blackout", false);
+  e.edit("a", { action: "loadProgram", projectId: p.id, episodeId: program.id });
+  assert.equal(e.data.selection.script, null);
+  assert.equal(e.data.transport.playing, false);
+  assert.equal(e.position(), 0);
+  e.control("a", "load", s.oscId);
+  assert.equal(e.current().s.id, s.id);
+  e.edit("a", { action: "screenSettings", screenId: "1", value: { lineHeight: 0.5, guideThickness: 100, guideColor: "#ff0000", guideSize: 30 } });
+  assert.equal(e.screenSettings("1").lineHeight, 0.5);
+  assert.equal(e.screenSettings("1").guideSize, 30);
+});

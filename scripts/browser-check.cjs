@@ -45,6 +45,29 @@ const { initial } = require("../server/state.cjs");
           .querySelector(".prompt-content")
           ?.textContent.includes("Velkommen"),
     );
+    await editor.locator('[data-control="blackout"]').click();
+    await output.locator(".blacked-out .blackout-cover").waitFor({ state: "visible" });
+    await other.locator(".blacked-out .blackout-cover").waitFor({ state: "visible" });
+    await editor.locator('[data-control="blackout"]').click();
+    await output.locator(".blackout-cover").waitFor({ state: "hidden" });
+    await editor.evaluate(() => request({
+      type: "edit", action: "loadProgram",
+      projectId: state.selection.project, episodeId: state.selection.episode
+    }));
+    await output.locator(".standby-card").waitFor({ state: "visible" });
+    assert.ok((await output.locator(".standby-card").textContent()).includes("Dagens sending"));
+    assert.equal(server.engine.data.selection.script, null);
+    await editor.evaluate(() => command("load", "intro"));
+    await output.locator(".standby-card").waitFor({ state: "hidden" });
+    await editor.evaluate(() => request({ type: "edit", action: "screenSettings", screenId: "1", value: { guideThickness: 100, guideSize: 30, guideColor: "#ff0000", lineHeight: 0.5 } }));
+    await output.waitForFunction(() => getComputedStyle(document.querySelector(".guide")).borderTopWidth === "100px");
+    const arrow = await output.locator(".guide").evaluate(el => {
+      const style = getComputedStyle(el, "::before");
+      return { top: parseFloat(style.top), half: parseFloat(style.borderTopWidth), color: style.borderLeftColor };
+    });
+    assert.equal(arrow.top + arrow.half, -50);
+    assert.equal(arrow.color, "rgb(255, 0, 0)");
+    await editor.evaluate(() => request({ type: "edit", action: "screenSettings", screenId: "1", value: { guideThickness: 1, guideSize: 10, guideColor: "#32c6cb", lineHeight: 1.5 } }));
     const peer = await context.newPage();
     await peer.goto("http://localhost:17990/?editor");
     await peer.locator(".script-open").first().click();
@@ -201,6 +224,7 @@ const { initial } = require("../server/state.cjs");
     await mobile.waitForSelector("#hold");
     assert.equal(await mobile.locator(".mobile-control").count(), 1);
     assert.equal(await mobile.locator("#editor").count(), 0);
+    await mobile.locator("#hold").scrollIntoViewIfNeeded();
     const holdBox = await mobile.locator("#hold").boundingBox();
     await mobile.mouse.move(
       holdBox.x + holdBox.width / 2,
@@ -217,6 +241,21 @@ const { initial } = require("../server/state.cjs");
     const settings = await context.newPage();
     await settings.goto("http://localhost:17990/display");
     await settings.waitForSelector('[data-screen="1"][data-axis="mirror"]');
+    await settings.locator("#guide").uncheck();
+    await settings.waitForFunction(() => document.querySelector("#guideThickness").disabled);
+    assert.equal(await settings.locator('output[for="guideThickness"]').getAttribute("contenteditable"), "false");
+    await settings.locator("#guide").check();
+    await settings.waitForFunction(() => !document.querySelector("#guideThickness").disabled);
+    await settings.locator("#guideLineColor").fill("#ffaa00");
+    await output.waitForFunction(() => getComputedStyle(document.querySelector(".guide")).borderTopColor === "rgba(255, 170, 0, 0.2)");
+    await settings.locator('output[for="guideThickness"]').fill("75");
+    await settings.locator('output[for="guideThickness"]').press("Enter");
+    await settings.waitForFunction(() => document.querySelector("#guideThickness").value === "75");
+    await settings.locator('output[for="lineHeight"]').fill("0,75");
+    await settings.locator('output[for="lineHeight"]').press("Enter");
+    await settings.waitForFunction(() => document.querySelector("#lineHeight").value === "0.75");
+    await settings.locator('output[for="lineHeight"]').fill("1.5");
+    await settings.locator('output[for="lineHeight"]').press("Enter");
     await settings.locator('[data-screen="1"][data-axis="mirror"]').check();
     await output.waitForFunction(() =>
       getComputedStyle(

@@ -161,6 +161,7 @@ function connect() {
     if (msg.type === "transport") {
       if (state) {
         state.transport = msg.transport;
+        renderOutputStatus();
         for (const el of $$(".play"))
           el.textContent = state.transport.playing ? "Ⅱ Pause" : "▶ Start";
         $("#hold")?.classList.toggle("held", state.transport.holding);
@@ -243,8 +244,36 @@ function header() {
 function preview() {
   return '<div class="preview-box"><div class="stage-viewport"><div class="stage-transform"><div class="stage"><div class="prompt-content"></div></div><div class="guide"></div></div></div></div>';
 }
+function renderOutputStatus() {
+  if (!state) return;
+  const { p, e, s } = current();
+  for (const button of $$('[data-control="blackout"]')) {
+    button.classList.toggle("active", !!state.transport.blackout);
+    button.setAttribute("aria-pressed", String(!!state.transport.blackout));
+    button.textContent = state.transport.blackout ? "Blackout · På" : "Blackout";
+  }
+  const wrapper = $(".stage-transform");
+  if (!wrapper) return;
+  let card = $(".standby-card", wrapper);
+  if (!card) {
+    card = document.createElement("div");
+    card.className = "standby-card";
+    wrapper.append(card);
+    const black = document.createElement("div");
+    black.className = "blackout-cover";
+    wrapper.append(black);
+  }
+  const key = JSON.stringify([p?.name, e?.name, p?.logo]);
+  if (card.dataset.key !== key) {
+    card.dataset.key = key;
+    card.innerHTML = `${p?.logo ? `<img src="${esc(p.logo)}" alt="">` : ""}<strong>${esc(p?.name || "")}</strong><span>${esc(e?.name || "")}</span>`;
+  }
+  card.hidden = !!s;
+  wrapper.classList.toggle("standby", !s);
+  wrapper.classList.toggle("blacked-out", !!state.transport.blackout);
+}
 function transport() {
-  return `<div class="transport-row"><button data-control="reset" title="Til starten" aria-label="Til starten">↶</button><button class="primary play" data-control="toggle">▶ Start</button><button data-control="next" title="Neste manus" aria-label="Neste manus">↦</button></div><div class="speed-heading"><div><span class="eyebrow">Hastighet</span><div class="speed-value"><span data-speed>60</span><small>px / sek</small></div></div><div class="speed-step"><button data-step="-${CONFIG.speedStep}" aria-label="Saktere">−</button><button data-step="${CONFIG.speedStep}" aria-label="Raskere">+</button></div></div><input id="speed" aria-label="Hastighet" type="range" min="${CONFIG.speedMin}" max="${CONFIG.speedMax}" step="1"><div class="speed-hints"><span>Oppover</span><span>Nedover</span></div><div class="position-line"><span>Posisjon</span><span id="position-label">0 %</span></div><input id="position" aria-label="Posisjon i manus" type="range" min="0" max="1000" step="1"><button class="hold" id="hold">Hold for pause<small>Slipp for å fortsette</small></button>`;
+  return `<button class="blackout-button" data-control="blackout" aria-pressed="false">Blackout</button><div class="transport-row"><button data-control="reset" title="Til starten" aria-label="Til starten">↶</button><button class="primary play" data-control="toggle">▶ Start</button><button data-control="next" title="Neste manus" aria-label="Neste manus">↦</button></div><div class="speed-heading"><div><span class="eyebrow">Hastighet</span><div class="speed-value"><span data-speed contenteditable="true" role="textbox" inputmode="decimal" aria-label="Hastighet, tallverdi">60</span><small>px / sek</small></div></div><div class="speed-step"><button data-step="-${CONFIG.speedStep}" aria-label="Saktere">−</button><button data-step="${CONFIG.speedStep}" aria-label="Raskere">+</button></div></div><input id="speed" aria-label="Hastighet" type="range" min="${CONFIG.speedMin}" max="${CONFIG.speedMax}" step="1"><div class="speed-hints"><span>Oppover</span><span>Nedover</span></div><div class="position-line"><span>Posisjon</span><span id="position-label" contenteditable="true" role="textbox" inputmode="decimal" aria-label="Posisjon, prosent">0 %</span></div><input id="position" aria-label="Posisjon i manus" type="range" min="0" max="1000" step="1"><button class="hold" id="hold">Hold for pause<small>Slipp for å fortsette</small></button>`;
 }
 function build() {
   if (route === "output") {
@@ -273,12 +302,23 @@ function build() {
   bind();
 }
 function rangeField(id, label, min, max, step) {
-  return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" data-setting="${id}"><output for="${id}"></output></div>`;
+  return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" data-setting="${id}"><output for="${id}" contenteditable="true" role="textbox" inputmode="decimal" aria-label="${label}, tallverdi" data-number-setting="${id}"></output></div>`;
 }
 function checkField(id, label) {
   return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="checkbox" data-setting="${id}"></div>`;
 }
+function guideOptionDisabled(el) {
+  return !!el.closest("#guide-options") && (!state || !visualSettings().guide);
+}
 function updateConnection() {
+  $("#guide-options")?.classList.toggle("options-disabled", !state || !visualSettings().guide);
+
+  for (const el of $$('[data-number-setting], [data-speed], #position-label')) {
+    const enabled = connected && (!state?.lock || state.lock.owner === myId) && (!el.dataset.numberSetting || !displayFieldsLocked()) && !guideOptionDisabled(el);
+    el.contentEditable = String(enabled);
+    el.setAttribute("aria-disabled", String(!enabled));
+  }
+
   for (const el of $$(".connection")) {
     el.classList.toggle("offline", !connected);
     el.innerHTML = `<i class="dot"></i>${connected ? (state?.lock ? "KONTROLL LÅST" : "TILKOBLET") : "KOBLER TIL …"}`;
@@ -296,13 +336,14 @@ function updateConnection() {
   ))
     el.disabled =
       !permitted() ||
-      (el.hasAttribute("data-setting") && displayFieldsLocked());
+      (el.hasAttribute("data-setting") && displayFieldsLocked()) || guideOptionDisabled(el);
   if ($("#editor"))
     $("#editor").contentEditable = String(permitted() && !!editingScript());
 }
 function render() {
   if (!state) return;
   const { p, e, s } = current();
+  renderOutputStatus();
   if ($(".global-context"))
     $(".global-context").textContent =
       [p?.name, e?.name].filter(Boolean).join(" / ") ||
@@ -393,7 +434,7 @@ function render() {
         else el.value = visualSettings()[el.dataset.setting];
       }
       let o = $(`output[for="${el.id}"]`);
-      if (o) o.textContent = visualSettings()[el.dataset.setting];
+      if (o && document.activeElement !== o) o.textContent = visualSettings()[el.dataset.setting];
     }
   if (route === "settings") {
     renderSystemSettings();
@@ -415,7 +456,7 @@ function render() {
   updateConnection();
   updateLayout();
   reportLayout();
-  for (const el of $$("[data-speed]")) el.textContent = state.transport.speed;
+  for (const el of $$("[data-speed]")) if (document.activeElement !== el) el.textContent = state.transport.speed;
   for (const el of $$(".play"))
     el.textContent = state.transport.playing ? "Ⅱ Pause" : "▶ Start";
   if ($("#speed") && document.activeElement !== $("#speed"))
@@ -425,7 +466,7 @@ function render() {
 function scriptSettingsPanel() {
   const numeric = [
     ["fontSize", "Skriftstørrelse", 20, 120, 1],
-    ["lineHeight", "Linjeavstand", 1, 2.5, 0.1],
+    ["lineHeight", "Linjeavstand", 0.5, 2.5, 0.05],
     ["margin", "Sidemarger", 20, 400, 10],
     ["guidePosition", "Lesepunkt (%)", 5, 80, 1],
   ];
@@ -573,6 +614,12 @@ function updateLayout() {
       `scale(${route === "output" && outputScreen()?.mirror ? -1 : 1},${route === "output" && outputScreen()?.flip ? -1 : 1})`;
     guide.style.display = visualSettings().guide ? "" : "none";
     guide.style.top = visualSettings().guidePosition + "%";
+    guide.style.setProperty("--guide-thickness", (visualSettings().guideThickness ?? 1) + "px");
+    guide.style.setProperty("--guide-size", (visualSettings().guideSize ?? 10) + "px");
+    const lineColor = visualSettings().guideLineColor || "#32c6cb";
+    const channels = [1, 3, 5].map(i => parseInt(lineColor.slice(i, i + 2), 16));
+    guide.style.setProperty("--guide-line-color", `rgba(${channels.join(",")}, ${(visualSettings().guideOpacity ?? 20) / 100})`);
+    guide.style.setProperty("--guide-color", visualSettings().guideColor || "#32c6cb");
   }
   maxPosition = Math.max(0, ruler.getBoundingClientRect().height);
   buildDisplayPositionMap();
@@ -613,7 +660,7 @@ function animate() {
     }
     if ($("#position") && document.activeElement !== $("#position"))
       $("#position").value = maxPosition ? (p / maxPosition) * 1000 : 0;
-    if ($("#position-label"))
+    if ($("#position-label") && document.activeElement !== $("#position-label"))
       $("#position-label").textContent =
         `${Math.round(maxPosition ? (p / maxPosition) * 100 : 0)} %`;
   }
@@ -729,6 +776,29 @@ function format(cmd, value) {
   markDirty();
 }
 function bind() {
+  for (const el of $$('[data-number-setting], [data-speed], #position-label')) {
+    el.addEventListener("keydown", event => {
+      if (event.key === "Enter") { event.preventDefault(); el.blur(); }
+      if (event.key === "Escape") { event.preventDefault(); el.dataset.cancel = "1"; el.blur(); }
+    });
+    el.addEventListener("blur", () => {
+      const value = Number(el.textContent.replace("%", "").replace(",", ".").trim());
+      const allowed = connected && (!state.lock || state.lock.owner === myId);
+      if (!el.dataset.cancel && allowed && Number.isFinite(value)) {
+        if (el.dataset.numberSetting && !displayFieldsLocked() && !guideOptionDisabled(el)) {
+          const slider = document.getElementById(el.dataset.numberSetting);
+          if (value >= Number(slider.min) && value <= Number(slider.max)) {
+            slider.value = value;
+            slider.dispatchEvent(new Event("input"));
+          } else toast("Verdien må være mellom " + slider.min + " og " + slider.max);
+        } else if (el.hasAttribute("data-speed") && Math.abs(value) <= 500) command("speed", value);
+        else if (el.id === "position-label" && value >= 0 && value <= 100) command("seek", maxPosition * value / 100);
+      }
+      delete el.dataset.cancel;
+      render();
+    });
+  }
+
   document.addEventListener("selectionchange", rememberRange);
   document.addEventListener("click", (event) => {
     const b = event.target.closest("button");

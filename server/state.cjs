@@ -50,20 +50,23 @@ const clean = (html) =>
   });
 function displaySettings(v = {}, base = config.defaultDisplay) {
   const out = {};
-  for (let k of ["fontSize", "lineHeight", "margin", "guidePosition"])
+  for (let k of ["fontSize", "lineHeight", "margin", "guidePosition", "guideThickness", "guideSize", "guideOpacity"])
     if (k in v) {
       let limits = {
         fontSize: [20, 120],
-        lineHeight: [1, 2.5],
+        lineHeight: [0.5, 2.5],
         margin: [20, 400],
         guidePosition: [5, 80],
+        guideThickness: [0, 100],
+        guideOpacity: [0, 100],
+        guideSize: [4, 60],
       }[k];
       if (!Number.isFinite(v[k]) || v[k] < limits[0] || v[k] > limits[1])
         throw Error("Ugyldig innstilling.");
       out[k] = v[k];
     }
   for (let k of ["mirror", "flip", "guide"]) if (k in v) out[k] = !!v[k];
-  for (let k of ["background", "color"])
+  for (let k of ["background", "color", "guideColor", "guideLineColor"])
     if (k in v) {
       if (!/^#[0-9a-f]{6}$/i.test(v[k])) throw Error("Ugyldig farge.");
       out[k] = v[k];
@@ -225,6 +228,9 @@ class Engine {
     this.anchor();
     let t = this.data.transport;
     switch (action) {
+      case "blackout":
+        t.blackout = value === undefined ? !t.blackout : !!value;
+        break;
       case "play":
         t.playing = true;
         break;
@@ -328,17 +334,12 @@ class Engine {
         const project = this.data.projects.find((x) => x.id === msg.projectId);
         const episode = project?.episodes.find((x) => x.id === msg.episodeId);
         if (!episode) throw Error("Ukjent program.");
-        if (
-          this.data.selection.project === project.id &&
-          this.data.selection.episode === episode.id
-        )
-          break;
         this.data.selection = {
           project: project.id,
           episode: episode.id,
           script: null,
         };
-        this.load(episode.scripts[0]?.id || null);
+        this.load(null);
         break;
       }
       case "selectProject": {
@@ -349,14 +350,14 @@ class Engine {
           episode: project.episodes[0]?.id || null,
           script: null,
         };
-        this.load(project.episodes[0]?.scripts[0]?.id || null);
+        this.load(null);
         break;
       }
       case "selectEpisode": {
         let episode = p?.episodes.find((e) => e.id === msg.id);
         if (!episode) throw Error("Ukjent program.");
         this.data.selection.episode = episode.id;
-        this.load(episode.scripts[0]?.id || null);
+        this.load(null);
         break;
       }
       case "selectScript":
