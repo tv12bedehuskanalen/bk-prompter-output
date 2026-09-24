@@ -229,7 +229,7 @@ async function startServer(options = {}) {
   );
   app.use(express.static(path.join(__dirname, "../public")));
   app.get(
-    ["/", "/output", "/controller", "/display", "/settings"],
+    ["/", "/output", "/controller", "/display", "/settings", "/projects"],
     (req, res) => res.sendFile(path.join(__dirname, "../public/index.html")),
   );
   app.use((err, req, res, next) =>

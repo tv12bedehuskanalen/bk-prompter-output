@@ -91,6 +91,7 @@ class LocalRepository {
       appVersion,
       exportedAt: new Date().toISOString(),
       projects: data.projects,
+      displayPresets: data.displayPresets || [],
     };
   }
 }

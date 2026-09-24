@@ -4,7 +4,11 @@ const path = require("node:path");
 const config = require("../config/app.cjs");
 const { startServer } = require("../server/index.cjs");
 // A stable location across development, new versions, and replacement installers.
-app.setPath("userData", path.join(app.getPath("appData"), config.storageName));
+app.setPath(
+  "userData",
+  process.env.BK_DATA_DIR ||
+    path.join(app.getPath("appData"), config.storageName),
+);
 let window,
   localServer,
   quitting = false;
@@ -61,6 +65,7 @@ else {
       ![
         "/",
         "/?editor",
+        "/projects",
         "/controller",
         "/output",
         "/display",

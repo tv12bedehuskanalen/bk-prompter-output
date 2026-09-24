@@ -24,8 +24,10 @@ Replies are sent to the originating address and UDP source port:
 - `/prompter/error` + string description for invalid commands, missing IDs or ownership rejection.
 - `/prompter/state` + JSON string with `position`, `speed`, `playing`, `holding`, `at`.
 
-Open a web interface first so the local renderer can report canonical chapter/end positions. Normal playback works without a controller, but chapter/end detection requires the layout report. All OSC sources currently share the single “OSC” control identity and hold lease. UDP is not a guaranteed-delivery protocol; resend state-setting commands when appropriate. Commands in OSC bundles are processed by the OSC library; future-timetag show scheduling is not a supported contract in v0.1.
+Open a web interface first so the local renderer can report canonical chapter/end positions. Normal playback works without a controller, but chapter/end detection requires the layout report. All OSC sources currently share the single “OSC” control identity and hold lease. UDP is not a guaranteed-delivery protocol; resend state-setting commands when appropriate. Commands in OSC bundles are processed by the OSC library; future-timetag show scheduling is not a supported contract in v0.2.
 
 Create the same `intro` ID in different programs to reuse one automation button. It will always address the script in the **currently loaded program**, never a matching script elsewhere.
 
 A Companion module can later use this protocol. No Companion module is included yet.
+
+Loading applies the script’s display policy: keep current settings, apply its named preset, or apply its custom settings. Loading always leaves playback paused at the beginning so the presenter can start it from the phone.

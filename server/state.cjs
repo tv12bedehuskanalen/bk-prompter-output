@@ -47,6 +47,51 @@ const clean = (html) =>
       }),
     },
   });
+function displaySettings(v = {}, base = config.defaultDisplay) {
+  const out = {};
+  for (let k of ["fontSize", "lineHeight", "margin", "guidePosition"])
+    if (k in v) {
+      let limits = {
+        fontSize: [20, 120],
+        lineHeight: [1, 2.5],
+        margin: [20, 400],
+        guidePosition: [5, 80],
+      }[k];
+      if (!Number.isFinite(v[k]) || v[k] < limits[0] || v[k] > limits[1])
+        throw Error("Ugyldig innstilling.");
+      out[k] = v[k];
+    }
+  for (let k of ["mirror", "flip", "guide"]) if (k in v) out[k] = !!v[k];
+  for (let k of ["background", "color"])
+    if (k in v) {
+      if (!/^#[0-9a-f]{6}$/i.test(v[k])) throw Error("Ugyldig farge.");
+      out[k] = v[k];
+    }
+  if ("align" in v) {
+    if (!["left", "center", "right"].includes(v.align))
+      throw Error("Ugyldig tekstjustering.");
+    out.align = v.align;
+  }
+  return { ...base, ...out };
+}
+function scriptDisplay(value, presets) {
+  const displayMode = value.displayMode || "keep";
+  if (!["keep", "preset", "custom"].includes(displayMode))
+    throw Error("Ugyldig visningsvalg.");
+  const presetId =
+    displayMode === "preset" ? String(value.presetId || "") : null;
+  if (presetId && !presets.some((x) => x.id === presetId))
+    throw Error("Forhåndsinnstillingen finnes ikke.");
+  if (displayMode === "preset" && !presetId)
+    throw Error("Velg en forhåndsinnstilling.");
+  return {
+    displayMode,
+    presetId,
+    customSettings:
+      displayMode === "custom" ? displaySettings(value.customSettings) : null,
+  };
+}
+
 const uid = () => randomUUID();
 function initial() {
   const project = uid(),
@@ -77,6 +122,7 @@ function initial() {
       },
     ],
     selection: { project, episode, script },
+    displayPresets: [],
     settings: { ...config.defaultDisplay },
     network: {
       port: config.defaultWebPort,
@@ -90,6 +136,7 @@ function initial() {
 class Engine {
   constructor(data = initial(), now = () => performance.now()) {
     this.data = data;
+    this.data.displayPresets ??= [];
     this.now = now;
     this.holds = new Map();
     this.layout = null;
@@ -199,6 +246,15 @@ class Engine {
     }
   }
   load(id) {
+    const script = this.current().e?.scripts.find((x) => x.id === id);
+    if (script?.displayMode === "preset") {
+      const preset = this.data.displayPresets.find(
+        (x) => x.id === script.presetId,
+      );
+      if (!preset) throw Error("Forhåndsinnstillingen til manuset mangler.");
+      this.data.settings = displaySettings(preset.settings);
+    } else if (script?.displayMode === "custom")
+      this.data.settings = displaySettings(script.customSettings);
     this.data.selection.script = id;
     this.data.transport.position = 0;
     this.data.transport.playing = false;
@@ -226,6 +282,23 @@ class Engine {
       .trim()
       .slice(0, 120);
     switch (msg.action) {
+      case "loadProgram": {
+        const project = this.data.projects.find((x) => x.id === msg.projectId);
+        const episode = project?.episodes.find((x) => x.id === msg.episodeId);
+        if (!episode) throw Error("Ukjent program.");
+        if (
+          this.data.selection.project === project.id &&
+          this.data.selection.episode === episode.id
+        )
+          break;
+        this.data.selection = {
+          project: project.id,
+          episode: episode.id,
+          script: null,
+        };
+        this.load(episode.scripts[0]?.id || null);
+        break;
+      }
       case "selectProject": {
         let project = this.data.projects.find((p) => p.id === msg.id);
         if (!project) throw Error("Ukjent prosjekt.");
@@ -253,15 +326,22 @@ class Engine {
         if (!name) throw Error("Skriv et navn.");
         p = { id: uid(), name, episodes: [] };
         this.data.projects.push(p);
-        this.data.selection = { project: p.id, episode: null, script: null };
-        this.load(null);
+        if (!msg.background) {
+          this.data.selection = { project: p.id, episode: null, script: null };
+          this.load(null);
+        }
         break;
       case "createEpisode":
+        if (msg.projectId)
+          p = this.data.projects.find((x) => x.id === msg.projectId);
         if (!p || !name) throw Error("Velg prosjekt og skriv et navn.");
         e = { id: uid(), name, scripts: [] };
         p.episodes.push(e);
-        this.data.selection.episode = e.id;
-        this.load(null);
+        if (!msg.background) {
+          this.data.selection.project = p.id;
+          this.data.selection.episode = e.id;
+          this.load(null);
+        }
         break;
       case "createScript":
         if (!e || !name) throw Error("Velg program og skriv et navn.");
@@ -273,10 +353,11 @@ class Engine {
           html: clean(msg.html || "<p>Skriv manuset ditt her …</p>"),
         };
         e.scripts.push(s);
-        this.load(s.id);
+        if (!msg.background) this.load(s.id);
         break;
       case "saveScript": {
-        if (!s || s.id !== msg.id)
+        s = e?.scripts.find((x) => x.id === msg.id);
+        if (!s)
           throw Error("Manuset er byttet. Kopier utkastet før du fortsetter.");
         if (msg.version !== s.version)
           throw Error(
@@ -292,14 +373,64 @@ class Engine {
         if (!name) throw Error("Skriv et manusnavn.");
         if (typeof msg.html !== "string" || msg.html.length > 1000000)
           throw Error("Manuset er for stort.");
-        this.anchor();
+        const color = msg.color ?? s.color ?? "#32c6cb";
+        if (!/^#[0-9a-f]{6}$/i.test(color)) throw Error("Ugyldig manusfarge.");
+        const display = scriptDisplay(
+          { ...s, ...msg },
+          this.data.displayPresets,
+        );
+        const isLive = s.id === this.data.selection.script;
+        if (isLive) this.anchor();
         Object.assign(s, {
+          ...display,
+          color,
           name,
           oscId,
           html: clean(msg.html),
           version: s.version + 1,
         });
+        if (isLive) this.layout = null;
+        break;
+      }
+      case "savePreset": {
+        if (!name) throw Error("Skriv et navn på forhåndsinnstillingen.");
+        if (
+          this.data.displayPresets.some(
+            (x) => x.name.toLowerCase() === name.toLowerCase(),
+          )
+        )
+          throw Error("Navnet er allerede i bruk.");
+        this.data.displayPresets.push({
+          id: uid(),
+          name,
+          settings: displaySettings(msg.value || this.data.settings),
+        });
+        break;
+      }
+      case "applyPreset": {
+        const preset = this.data.displayPresets.find((x) => x.id === msg.id);
+        if (!preset) throw Error("Ukjent forhåndsinnstilling.");
+        this.anchor();
+        this.data.settings = displaySettings(preset.settings);
         this.layout = null;
+        break;
+      }
+      case "deletePreset": {
+        if (
+          this.data.projects.some((p) =>
+            p.episodes.some((e) =>
+              e.scripts.some(
+                (s) => s.displayMode === "preset" && s.presetId === msg.id,
+              ),
+            ),
+          )
+        )
+          throw Error(
+            "Forhåndsinnstillingen brukes av et manus og kan ikke slettes.",
+          );
+        this.data.displayPresets = this.data.displayPresets.filter(
+          (x) => x.id !== msg.id,
+        );
         break;
       }
       case "importProjects": {
@@ -311,6 +442,25 @@ class Engine {
           input.projects.length > 100
         )
           throw Error("Ugyldig prosjektfil.");
+        const importedPresets = input.displayPresets || [];
+        if (!Array.isArray(importedPresets) || importedPresets.length > 500)
+          throw Error("Ugyldige forhåndsinnstillinger.");
+        const presetMap = new Map();
+        const newPresets = importedPresets.map((p) => {
+          if (
+            typeof p.id !== "string" ||
+            typeof p.name !== "string" ||
+            presetMap.has(p.id)
+          )
+            throw Error("Ugyldig forhåndsinnstilling.");
+          const id = uid();
+          presetMap.set(p.id, id);
+          return {
+            id,
+            name: p.name.slice(0, 100) + " (importert)",
+            settings: displaySettings(p.settings),
+          };
+        });
         let total = 0,
           count = 0;
         const projects = input.projects.map((p) => {
@@ -347,10 +497,17 @@ class Engine {
                   ids.add(oscId);
                   return {
                     id: uid(),
+                    ...scriptDisplay(
+                      { ...s, presetId: presetMap.get(s.presetId) },
+                      newPresets,
+                    ),
                     name: s.name.slice(0, 120),
                     oscId,
                     version: 1,
                     html: clean(s.html),
+                    color: /^#[0-9a-f]{6}$/i.test(s.color)
+                      ? s.color
+                      : "#32c6cb",
                   };
                 }),
               };
@@ -358,12 +515,15 @@ class Engine {
           };
         });
         this.data.projects.push(...projects);
+        this.data.displayPresets.push(...newPresets);
         break;
       }
       case "deleteScript":
-        if (!s || msg.id !== s.id) throw Error("Velg manus først.");
+        s = e?.scripts.find((x) => x.id === msg.id);
+        if (!s) throw Error("Velg manus først.");
         e.scripts = e.scripts.filter((x) => x.id !== s.id);
-        this.load(e.scripts[0]?.id || null);
+        if (s.id === this.data.selection.script)
+          this.load(e.scripts[0]?.id || null);
         break;
       case "moveScript": {
         let i = e?.scripts.findIndex((x) => x.id === msg.id),
@@ -374,31 +534,7 @@ class Engine {
         break;
       }
       case "settings": {
-        const v = msg.value || {},
-          out = {};
-        for (let k of ["fontSize", "lineHeight", "margin", "guidePosition"])
-          if (k in v) {
-            let limits = {
-              fontSize: [20, 120],
-              lineHeight: [1, 2.5],
-              margin: [20, 400],
-              guidePosition: [5, 80],
-            }[k];
-            if (!Number.isFinite(v[k]) || v[k] < limits[0] || v[k] > limits[1])
-              throw Error("Ugyldig innstilling.");
-            out[k] = v[k];
-          }
-        for (let k of ["mirror", "flip", "guide"]) if (k in v) out[k] = !!v[k];
-        for (let k of ["background", "color"])
-          if (k in v) {
-            if (!/^#[0-9a-f]{6}$/i.test(v[k])) throw Error("Ugyldig farge.");
-            out[k] = v[k];
-          }
-        if ("align" in v) {
-          if (!["left", "center", "right"].includes(v.align))
-            throw Error("Ugyldig tekstjustering.");
-          out.align = v.align;
-        }
+        const out = displaySettings(msg.value, this.data.settings);
         this.anchor();
         Object.assign(this.data.settings, out);
         this.layout = null;
@@ -410,4 +546,4 @@ class Engine {
     this.data.revision++;
   }
 }
-module.exports = { Engine, initial, clean };
+module.exports = { Engine, initial, clean, displaySettings };

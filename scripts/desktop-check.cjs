@@ -16,8 +16,9 @@ const fs = require("node:fs"),
     });
     const page = await app.firstWindow();
     await page.waitForFunction(() =>
-      document.querySelector("#version")?.textContent.includes("0.1.0"),
+      document.querySelector("#version")?.textContent.includes("0.2.0"),
     );
+    assert.equal(await page.locator("#gui").inputValue(), "/projects");
     const status = await page.evaluate(() => launcher.status());
     assert.equal(status.port, 17992);
     assert.ok(status.interfaces.length);
@@ -29,7 +30,7 @@ const fs = require("node:fs"),
     assert.equal(
       (await fetch("http://localhost:17993/api/status").then((r) => r.json()))
         .version,
-      "0.1.0",
+      "0.2.0",
     );
     await page.screenshot({
       path: path.join(__dirname, "../docs/screenshots/launcher.png"),

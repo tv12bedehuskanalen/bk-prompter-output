@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0
+
+- New three-panel rundown: collapsible live sidebar, colored script blocks, and a separate script editor.
+- Separate project/program menu; browsing does not disturb the loaded program.
+- Each script has an explicit load button; opening/editing another script leaves playback untouched.
+- Per-script settings: retain current display, load a named preset, or apply custom settings without a preset.
+- Local preset library with project export/import and reference protection.
+- Button, OSC, and next/previous loading share the same behavior; presenters retain phone start/speed controls.
+- Existing 0.1.0 projects remain compatible and default to keeping current display settings.
+- 19 automated tests plus expanded browser workflow checks.
+
 ## 0.1.0 — 2026-09-24
 
 First local beta.

@@ -34,6 +34,7 @@ const { initial } = require("../server/state.cjs");
     await editor.goto("http://localhost:17990/?editor");
     await output.goto("http://localhost:17990/output");
     await other.goto("http://localhost:17990/output");
+    await editor.locator(".script-open").first().click();
     await editor.waitForFunction(() =>
       document.querySelector("#editor")?.textContent.includes("Velkommen"),
     );
@@ -68,7 +69,7 @@ const { initial } = require("../server/state.cjs");
     await editor.waitForFunction(
       () => document.querySelector("#script-name").value === "Neste innslag",
     );
-    await editor.locator(".script-card").first().click();
+    await editor.locator(".script-open").first().click();
     await editor.waitForFunction(() =>
       document.querySelector("#editor").textContent.includes("Velkommen"),
     );
@@ -79,6 +80,7 @@ const { initial } = require("../server/state.cjs");
     // Reload and navigation also discard edits, with no hidden draft persistence.
     await editor.locator("#editor").fill("Discard on reload");
     await editor.reload();
+    await editor.locator(".script-open").first().click();
     await editor.waitForFunction(() =>
       document.querySelector("#editor").textContent.includes("Velkommen"),
     );
@@ -160,6 +162,137 @@ const { initial } = require("../server/state.cjs");
     assert.equal(server.engine.data.settings.mirror, true);
     await settings.locator("#mirror").uncheck();
     await editor.locator('[data-control="reset"]').click();
+    const waitFor = async (check) => {
+      for (let i = 0; i < 100; i++) {
+        if (check()) return;
+        await editor.waitForTimeout(20);
+      }
+      assert.fail("Expected server state was not reached");
+    };
+    const setRange = async (page, selector, value) =>
+      page.locator(selector).evaluate((input, value) => {
+        input.value = value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }, value);
+    await setRange(settings, "#fontSize", 80);
+    await waitFor(() => server.engine.data.settings.fontSize === 80);
+    await settings.locator("#preset-name").fill("Studio · stor tekst");
+    await settings.locator("#save-preset").click();
+    await waitFor(() => server.engine.data.displayPresets.length === 1);
+    const presetId = server.engine.data.displayPresets[0].id;
+    await setRange(settings, "#fontSize", 56);
+    await waitFor(() => server.engine.data.settings.fontSize === 56);
+    const originalProgram = { ...server.engine.data.selection };
+    const secondId = server.engine.current().e.scripts[1].id;
+    await editor.locator(".script-open").nth(1).click();
+    assert.equal(
+      server.engine.current().s.id,
+      originalProgram.script,
+      "opening the editor must not load the script",
+    );
+    await editor
+      .locator("#editor")
+      .fill(
+        "Neste innslag. Presentøren styrer hastigheten fra telefonen. ".repeat(
+          20,
+        ),
+      );
+    await editor.locator(".script-display-panel summary").click();
+    await editor.locator("#script-display-mode").selectOption("preset");
+    await editor.locator("#script-preset").selectOption(presetId);
+    await editor.locator('[data-color="#e79755"]').click();
+    await editor.locator("#save").click();
+    await waitFor(
+      () => server.engine.current().e.scripts[1].displayMode === "preset",
+    );
+    assert.equal(
+      server.engine.data.settings.fontSize,
+      56,
+      "editing a script preset must not affect current output",
+    );
+    await editor.locator(".load-script").nth(1).click();
+    await waitFor(() => server.engine.current().s.id === secondId);
+    assert.equal(server.engine.data.transport.playing, false);
+    assert.equal(server.engine.position(), 0);
+    assert.equal(server.engine.data.settings.fontSize, 80);
+    await mobile.waitForFunction(
+      () =>
+        document.querySelector("#controller-title").textContent ===
+        "Neste innslag",
+    );
+    await mobile.locator('[data-control="toggle"]').click();
+    await waitFor(() => server.engine.data.transport.playing);
+    await setRange(mobile, "#speed", 77);
+    await waitFor(() => server.engine.data.transport.speed === 77);
+    await mobile.locator('[data-control="toggle"]').click();
+    await editor.locator("#script-display-mode").selectOption("custom");
+    await editor.locator('[data-custom-setting="fontSize"]').fill("44");
+    await editor.locator("#save").click();
+    await waitFor(() => server.engine.current().s.displayMode === "custom");
+    assert.equal(server.engine.data.settings.fontSize, 80);
+    await editor.locator(".load-script").nth(1).click();
+    await waitFor(() => server.engine.data.settings.fontSize === 44);
+    assert.equal(server.engine.data.displayPresets.length, 1);
+    await editor.locator("#script-display-mode").selectOption("keep");
+    await editor.locator("#save").click();
+    await waitFor(() => server.engine.current().s.displayMode === "keep");
+    await setRange(settings, "#fontSize", 68);
+    await waitFor(() => server.engine.data.settings.fontSize === 68);
+    await editor.locator(".load-script").nth(1).click();
+    assert.equal(server.engine.data.settings.fontSize, 68);
+    await editor.locator("#toggle-live").click();
+    assert.equal(await editor.locator(".live-body").isVisible(), false);
+    await editor.locator("#toggle-live").click();
+    assert.equal(await editor.locator(".live-body").isVisible(), true);
+    assert.equal(
+      await editor.locator("#project,#episode").count(),
+      0,
+      "workspace has no project/program selectors",
+    );
+    const left = await editor.locator(".live-sidebar").boundingBox(),
+      middle = await editor.locator(".rundown-pane").boundingBox(),
+      right = await editor.locator(".editor-pane").boundingBox();
+    assert.ok(left.x < middle.x && middle.x < right.x);
+    const menu = await context.newPage();
+    await menu.goto("http://localhost:17990/projects");
+    await menu.locator("#menu-create").click();
+    await menu.locator("#new-name").fill("Helgesending");
+    await menu.locator("dialog button.primary").click();
+    await menu.waitForFunction(
+      () =>
+        document.querySelector("#menu-title").textContent === "Helgesending",
+    );
+    assert.equal(
+      server.engine.current().s.id,
+      secondId,
+      "project menu must not alter the live program while browsing",
+    );
+    await menu.locator("#menu-create").click();
+    await menu.locator("#new-name").fill("Søndag");
+    await menu.locator("dialog button.primary").click();
+    await menu.waitForSelector("[data-program]");
+    assert.equal(server.engine.current().s.id, secondId);
+    await menu.screenshot({
+      path: path.join(__dirname, "../docs/screenshots/program-menu.png"),
+      fullPage: true,
+    });
+    await menu.locator("[data-program]").click();
+    await menu.waitForURL("**/?editor");
+    await waitFor(() => server.engine.current().e.name === "Søndag");
+    await menu.goto("http://localhost:17990/projects");
+    await menu.locator(`[data-project="${originalProgram.project}"]`).click();
+    await menu.locator(`[data-program="${originalProgram.episode}"]`).click();
+    await menu.waitForURL("**/?editor");
+    await waitFor(
+      () => server.engine.current().e.id === originalProgram.episode,
+    );
+    await editor.locator(".script-open").first().click();
+    await editor.locator(".load-script").first().click();
+    await setRange(settings, "#fontSize", 56);
+    await waitFor(() => server.engine.data.settings.fontSize === 56);
+    await editor
+      .locator(".script-display-panel")
+      .evaluate((el) => (el.open = false));
     // Restore attractive sample content for screenshots after validating publication.
     const sample = initial().projects[0].episodes[0].scripts[0];
     const active = server.engine.current().s;
@@ -169,6 +302,7 @@ const { initial } = require("../server/state.cjs");
     }, sample.html);
     await editor.locator("#save").click();
     await editor.waitForTimeout(500);
+    await editor.locator("#editor").evaluate((el) => (el.scrollTop = 0));
     await editor
       .locator("#toast")
       .evaluate((el) => (el.style.display = "none"));

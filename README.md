@@ -1,6 +1,6 @@
 # BK Prompter
 
-An offline-first, Norwegian teleprompter for Bedehuskanalen. Version **0.1.0** is the first local beta.
+An offline-first, Norwegian teleprompter for Bedehuskanalen. Version **0.2.0** adds the rundown editor and per-script display presets.
 
 ## Run
 
@@ -19,6 +19,7 @@ Default HTTP port: **7890**, listening on all IPv4 interfaces. Default OSC UDP p
 
 | Interface | Local address |
 | --- | --- |
+| Prosjekter og programmer | http://localhost:7890/projects |
 | Manusrom | http://localhost:7890/?editor |
 | Ren prompterutgang | http://localhost:7890/output |
 | Mobil / fjernkontroll | http://localhost:7890/controller |
@@ -31,11 +32,28 @@ On a phone, the root address automatically opens the mobile controller. Use the 
 
 Projects contain programs/episodes, which contain ordered scripts. Project changes, settings, and shared state save automatically. There is no project-level Save operation.
 
+Use the project menu to choose a project, then open a program. Browsing or creating projects/programs in the menu does not interrupt the loaded program. Opening a different program switches the shared context for all views. The editor has collapsible live controls on the left, colored script blocks in the middle, and script editing on the right.
+
+Click a block to edit it without loading it. Each block's **Last inn** button loads that script on all outputs, paused at the beginning. The same operation is available through OSC. The presenter can then start and adjust speed from the phone controller. Editing an off-air script does not alter the live script or its playback position.
+
+
 Unsubmitted script edits stay in that browser tab only. Leaving the page, refreshing, or switching projects/programs/scripts discards unsubmitted edits without publishing them. Returning always loads the current shared state. **Oppdater manus** submits the text, script title, and OSC ID to the shared state, updates every connected output, and automatically persists it. Publishing while rolling preserves the current logical position, speed, and running state. A shorter script can naturally reach its end sooner. Text above the reading point can change which word occupies that position; this version preserves position, not a semantic word anchor.
 
 Concurrent edits use revision checking. A stale local draft cannot overwrite another editor’s submitted version. The user can copy the draft or use **Hent publisert tekst** to discard it and load the shared version.
 
 Heading formatting defines chapter jump points. Text color and highlight are manual editor controls. Paste inserts plain text; document import retains supported basic formatting. Supported script imports: DOCX, TXT, RTF, MD (plain text), HTML. Complex Word/RTF layouts, tables, and embedded graphics are not preserved. Projects can be exported/imported as JSON in Settings. Imported projects are added as new copies, with new internal IDs and preserved per-program OSC IDs.
+
+## Script display settings
+
+Under **Prompter ved innlasting** in each script's editor, choose:
+
+- **Behold gjeldende innstillinger**: loading the script leaves the current display settings unchanged. This is the default for existing scripts.
+- **Bruk forhåndsinnstilling**: choose a named preset from the shared preset library.
+- **Egne innstillinger for dette manuset**: specify font size, spacing, margins, colors, alignment, mirroring, flipping and reading-guide options without creating a reusable preset.
+
+Click **Oppdater manus** to save the choice with the script. These choices apply when the script is loaded by its button, OSC, next/previous navigation, or when opening a different program. Updating a script while it is live does not automatically reapply its loading settings or reset playback.
+
+Create presets on the **Visning** page by naming and saving the current display settings. Presets persist locally and are included in project export/import. Imported references receive new IDs so they do not overwrite existing presets. Presets referenced by scripts cannot be deleted until those scripts use a different setting choice.
 
 ## Live playback
 
