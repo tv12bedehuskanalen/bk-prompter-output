@@ -90,6 +90,15 @@ def update_status_api():
     return {"available": available, "status": status, "version": app_version()}
 
 
+@app.get("/update-check")
+def update_check_api():
+    try:
+        subprocess.run([UPDATE_SCRIPT, "--check"], timeout=60, check=False)
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return update_status_api()
+
+
 if __name__ == "__main__":
     if not os.path.exists(URL_FILE):
         with open(URL_FILE, "w", encoding="utf-8") as url_file:

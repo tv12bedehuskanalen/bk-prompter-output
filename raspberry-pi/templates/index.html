@@ -195,7 +195,7 @@
       window.addEventListener("pageshow", resetToOutput);
       resetToOutput();
       fitPreview();
-      fetch("/update-status", { cache: "no-store" }).then(r => r.json()).then(data => {
+      fetch("/update-check", { cache: "no-store" }).then(r => r.json()).then(data => {
         if (data.available) softwareStatus.textContent = `Ny versjon: ${data.available}`;
         else if (data.status && data.status.startsWith("Updated from")) message.textContent = data.status;
       }).catch(() => {});
