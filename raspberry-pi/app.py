@@ -62,6 +62,8 @@ def index():
             update_status = status_file.read().strip()
     except OSError:
         update_status = ""
+    if not update_status.startswith("Updated from"):
+        update_status = ""
     try:
         with open(UPDATE_AVAILABLE, encoding="utf-8") as available_file:
             update_available = available_file.read().strip()

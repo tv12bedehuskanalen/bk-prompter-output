@@ -75,7 +75,7 @@
       input { width: 100%; border: 1px solid #34484c; border-radius: 8px; background: #0a1416; color: var(--text); padding: 13px 14px; font: inherit; outline-offset: 3px; }
       input:focus { border-color: var(--accent); outline: 2px solid #32c6cb38; }
       .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
-      .software { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 11px; color: var(--muted); }
+      .software { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 11px; color: var(--muted); }
       .software button { min-height: 32px; padding: 6px 10px; font-size: 11px; }
       .progress { display: none; height: 4px; margin-top: 10px; overflow: hidden; border-radius: 4px; background: #263b3e; }
       .progress.active { display: block; }
@@ -117,7 +117,7 @@
             <button class="danger" type="button" data-action="reboot">Restart Pi</button>
           </div>
           <p id="message" role="status" aria-live="polite">{{ update_status }}</p>
-          <div class="software"><span id="softwareStatus">{{ update_available and ('Ny versjon: ' ~ update_available) or ('Versjon ' ~ version) }}</span><button type="button" data-action="software-update">Oppdater</button></div>
+          <div class="software"><span id="softwareStatus">{{ update_available and ('Ny versjon ' ~ update_available ~ ' tilgjengelig') or ('Programvare ' ~ version ~ ' er oppdatert') }}</span><button type="button" data-action="software-update">Oppdater</button></div>
           <div class="progress" id="updateProgress" aria-hidden="true"></div>
         </div>
       </section>
@@ -214,8 +214,8 @@
       resetToOutput();
       fitPreview();
       fetch("/update-check", { cache: "no-store" }).then(r => r.json()).then(data => {
-        if (data.available) softwareStatus.textContent = `Ny versjon: ${data.available}`;
-        else if (data.status && data.status.startsWith("Updated from")) message.textContent = data.status;
+        if (data.available) softwareStatus.textContent = `Ny versjon ${data.available} tilgjengelig`;
+        else if (data.status && data.status.startsWith("Updated from")) softwareStatus.textContent = `Programvare ${data.version} er oppdatert`;
       }).catch(() => {});
     </script>
   </body>
