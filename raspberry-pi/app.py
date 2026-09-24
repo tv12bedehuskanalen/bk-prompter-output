@@ -5,7 +5,7 @@ import subprocess
 import threading
 import time
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="branding", static_url_path="/branding")
 DEFAULT_URL = "http://10.144.144.162:7890/output"
 URL_FILE = os.path.expanduser("~/prompter_url.txt")
 PORT = 8443
