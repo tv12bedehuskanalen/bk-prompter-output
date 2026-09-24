@@ -9,3 +9,8 @@ release/
 .bk-prompter/
 test-results/
 playwright-report/
+raspberry-pi/__pycache__/
+SD Card Images/*.img.xz
+SD Card Images/*.img.xz.sha256
+SD Card Images/*.log
+SD Card Images/failed-*.xz

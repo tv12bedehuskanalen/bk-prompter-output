@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#080f11" />
+    <title>{{ site_name }} – Prompter Control</title>
+    <style>
+      :root {
+        --page: #080f11;
+        --panel: #0c1a1d;
+        --surface: #112327;
+        --text: #fffdf2;
+        --muted: #8ca5a8;
+        --accent: #32c6cb;
+        --accent-hover: #6bdbdd;
+        --accent-text: #042b2f;
+        --border: #243b3f;
+        --selected: #103a3e;
+        --danger: #d76960;
+        --danger-surface: #422624;
+      }
+      * { box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background: var(--page);
+        color: var(--text);
+        font: 15px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      header {
+        min-height: 76px;
+        padding: 16px clamp(18px, 5vw, 56px);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(105deg, var(--panel) 50%, #10353a);
+      }
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--accent);
+        color: var(--accent-text);
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: -1px;
+      }
+      .brand { font-size: 18px; font-weight: 750; letter-spacing: -.5px; }
+      .brand small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: .3px; }
+      main { width: min(700px, 100%); margin: 0 auto; padding: clamp(24px, 6vw, 40px) clamp(16px, 4vw, 28px); }
+      .eyebrow { margin-top:10px; color: var(--accent); font-size: 20px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; }
+      h1 { margin: 8px 0 8px; font-size: clamp(27px, 5vw, 38px); letter-spacing: -1.2px; }
+      .lead { margin: 0 0 30px; color: var(--muted); line-height: 1.55; }
+      .card { margin-top: 30px;overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 20px 45px #0004; }
+      .card-section { padding: clamp(20px, 4vw, 30px); }
+      .card-section + .card-section { border-top: 1px solid var(--border); }
+      .preview-section { padding: 0; background: #071012; }
+      .preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px clamp(20px, 4vw, 30px); border-bottom: 1px solid var(--border); }
+      .preview-heading h2 { margin: 0; }
+      .preview-heading span { color: var(--muted); font-size: 11px; }
+      .preview-frame-wrap { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #050809; }
+      .preview-frame-wrap iframe { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; display: block; border: 0; background: #050809; transform-origin: center center; }
+      .preview-empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; color: var(--muted); text-align: center; pointer-events: none; }
+      .preview-empty[hidden] { display: none; }
+      h2 { margin: 0 0 6px; font-size: 16px; }
+      .hint { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+      label { display: block; margin-bottom: 8px; color: #c9d7d9; font-size: 12px; font-weight: 700; letter-spacing: .25px; }
+      input { width: 100%; border: 1px solid #34484c; border-radius: 8px; background: #0a1416; color: var(--text); padding: 13px 14px; font: inherit; outline-offset: 3px; }
+      input:focus { border-color: var(--accent); outline: 2px solid #32c6cb38; }
+      .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+      button { min-height: 43px; border: 1px solid #303f42; border-radius: 8px; background: #1b2d30; color: var(--text); padding: 10px 14px; font: inherit; font-weight: 700; cursor: pointer; transition: background .15s, transform .15s; }
+      button:hover { background: #263c40; }
+      button:active { transform: translateY(1px); }
+      button.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
+      button.primary:hover { background: var(--accent-hover); }
+      button.danger { border-color: #75413e; background: var(--danger-surface); color: #ffbcb5; }
+      button.danger:hover { background: #58302e; }
+      #message { min-height: 22px; margin: 16px 0 0; color: var(--accent); font-size: 13px; font-weight: 650; }
+      footer { padding: 16px 0 0; color: #607b7f; font-size: 11px; text-align: center; }
+      @media (max-width: 520px) {
+        header { min-height: 68px; padding: 14px 18px; }
+        .actions { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">{{ site_name }}</div>
+      <h1>Prompter-output</h1>
+      <section class="card">
+        <div class="card-section preview-section">
+          <div class="preview-heading"><h2>Preview</h2><span>LIVE: {{ current_url }}</span></div>
+          <div class="preview-frame-wrap">
+            <iframe id="preview" title="Forhåndsvisning av prompter-output" referrerpolicy="no-referrer"></iframe>
+            <div class="preview-empty" id="previewEmpty">Skriv inn en URL for å se hva som sendes til skjermen.</div>
+          </div>
+        </div>
+        <div class="card-section">
+          <h2>URL</h2>
+          <p class="hint">Lim inn URL-en for den ønskede prompter-visningen.</p>
+          <input id="urlInput" type="url" value="{{ current_url }}" data-output-url="{{ current_url }}" inputmode="url" autocomplete="off" spellcheck="false" />
+          <div class="actions">
+            <button class="primary" type="button" data-action="update">Oppdater output</button>
+            <button type="button" data-action="refresh">Last inn på nytt</button>
+            <button type="button" data-action="software-update">Oppdater programvare</button>
+            <button class="danger" type="button" data-action="reboot">Restart Pi</button>
+          </div>
+          <p id="message" role="status" aria-live="polite">{{ update_status }}</p>
+        </div>
+      </section>
+      <footer>{{ version }} // © Bedehuskanalen 2026</footer>
+    </main>
+    <script>
+      const input = document.getElementById("urlInput");
+      const outputUrl = input.dataset.outputUrl;
+      const message = document.getElementById("message");
+      const preview = document.getElementById("preview");
+      const previewEmpty = document.getElementById("previewEmpty");
+      let previewTimer;
+      function updatePreview() {
+        const value = input.value.trim();
+        try {
+          const url = new URL(value);
+          if (!/^https?:$/.test(url.protocol)) throw new Error();
+          preview.src = url.href;
+          previewEmpty.hidden = true;
+        } catch (_) {
+          preview.removeAttribute("src");
+          previewEmpty.hidden = false;
+        }
+      }
+      function refreshPreview() {
+        const value = input.value.trim();
+        try {
+          const url = new URL(value);
+          if (!/^https?:$/.test(url.protocol)) throw new Error();
+          previewEmpty.hidden = true;
+          preview.src = "about:blank";
+          requestAnimationFrame(() => { preview.src = url.href; });
+        } catch (_) {
+          updatePreview();
+        }
+      }
+      function fitPreview() {
+        const frame = document.querySelector(".preview-frame-wrap");
+        if (!frame) return;
+        const scale = Math.min(frame.clientWidth / 1920, frame.clientHeight / 1080);
+        preview.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      }
+      input.addEventListener("input", () => { clearTimeout(previewTimer); previewTimer = setTimeout(updatePreview, 350); });
+      window.addEventListener("resize", fitPreview);
+      async function send(action) {
+        const button = document.querySelector(`[data-action="${action}"]`);
+        if (action === "reboot" && !confirm("Start Raspberry Pi på nytt?")) return;
+        if (action === "software-update" && !confirm("Se etter og installer programvareoppdatering?")) return;
+        if (action === "refresh") {
+          input.value = outputUrl;
+          updatePreview();
+        }
+        if (action === "update" && !input.value.trim()) { message.textContent = "Skriv inn en URL først."; input.focus(); return; }
+        button.disabled = true;
+        message.textContent = action === "reboot" ? "Starter Raspberry Pi …" : "Sender oppdatering …";
+        const serverAction = action === "software-update" ? "software_update" : action;
+        const data = new FormData(); data.append(serverAction, "true"); data.append("url", input.value.trim());
+        try {
+          const response = await fetch("/", { method: "POST", body: data });
+          if (!response.ok) throw new Error();
+          if (action === "update" || action === "refresh") refreshPreview();
+          message.textContent = action === "update" ? "Output oppdatert." : action === "refresh" ? "Output lastes inn på nytt." : action === "software-update" ? "Oppdatering startet …" : "Starter Raspberry Pi …";
+        } catch (_) { message.textContent = "Kunne ikke nå kontrolltjenesten. Prøv igjen."; }
+        finally { if (action !== "reboot" && action !== "software-update") button.disabled = false; }
+      }
+      document.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => send(button.dataset.action)));
+      input.addEventListener("keydown", event => { if (event.key === "Enter") send("update"); });
+      function resetToOutput() {
+        input.value = outputUrl;
+        updatePreview();
+      }
+      window.addEventListener("pageshow", resetToOutput);
+      resetToOutput();
+      fitPreview();
+    </script>
+  </body>
+</html>

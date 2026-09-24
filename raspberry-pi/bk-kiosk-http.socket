@@ -1,0 +1,9 @@
+[Unit]
+Description=BK Prompter control page on standard HTTP port
+
+[Socket]
+ListenStream=0.0.0.0:80
+NoDelay=true
+
+[Install]
+WantedBy=sockets.target

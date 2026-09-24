@@ -1,0 +1,14 @@
+[Unit]
+Description=Forward BK Prompter control requests to its local app
+Requires=bk-kiosk-http.socket
+After=network.target
+
+[Service]
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:8443
+DynamicUser=yes
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+Restart=on-failure
+RestartSec=2

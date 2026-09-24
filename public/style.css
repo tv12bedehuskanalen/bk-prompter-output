@@ -1,3 +1,8 @@
+:root {
+  --navigation-menu: #13272c;
+  --navigation-project: #1d4148;
+  --navigation-program: #28616a;
+}
 /* Font files and palette are deliberately declared first for easy customization. */
 @font-face {
   font-family: Prompter;
@@ -2923,3 +2928,29 @@ dialog select {
 .options-disabled input, .options-disabled output { cursor: not-allowed; }
 
 .rundown-pane .script-card.on-air, .rundown-pane .script-card.selected.on-air { border: 3px solid #e34f54; }
+
+/* Three distinct navigation levels, with no change to the project-menu destination. */
+.program-strip { gap: 0; padding-left: 0; }
+.program-exit { align-self: stretch; display: flex; align-items: center; padding: 0 20px; background: var(--navigation-menu); color: #c0d2d4; flex-shrink: 0; }
+.program-exit:hover { background: #204047; color: white; }
+#breadcrumb { align-self: stretch; display: flex; min-width: 0; overflow: hidden; }
+.breadcrumb-project, .breadcrumb-program { display: flex; align-items: center; padding: 0 20px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.breadcrumb-project { background: var(--navigation-project); color: #d2e6e8; }
+.breadcrumb-program { background: var(--navigation-program); color: #fff; }
+@media (max-width: 800px) {
+  .program-exit, .breadcrumb-project, .breadcrumb-program { padding: 0 12px; }
+}
+
+/* Compact rundown cards: keep titles and controls visible at higher density. */
+.rundown-pane .script-card { min-height: 96px; }
+.rundown-pane .script-order { padding: 8px 0 5px; }
+.rundown-pane .order-line { min-height: 4px; }
+.rundown-pane .script-open { padding: 8px 12px 2px; }
+.rundown-pane .script-block-top { margin-bottom: 4px; }
+.rundown-pane .osc-chip { padding: 2px 5px; }
+.rundown-pane .script-open h2 { font-size: 15px; margin-bottom: 0; }
+.rundown-pane .script-open p { display: none; }
+.rundown-pane .script-block-bottom { padding: 3px 10px 6px; gap: 5px; }
+.rundown-pane .script-block-bottom button { padding: 3px 7px; }
+
+.rundown-pane .script-card { cursor: pointer; }
