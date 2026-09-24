@@ -1,9 +1,10 @@
 #!/bin/bash
 set -euo pipefail
-INSTALL_DIR=${BK_INSTALL_DIR:-$HOME/bk-prompter}
-CONFIG="$INSTALL_DIR/updater.conf"
-STATUS_FILE="$INSTALL_DIR/update-status"
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+CONFIG="$SCRIPT_DIR/updater.conf"
 [[ -r "$CONFIG" ]] && . "$CONFIG"
+INSTALL_DIR=${BK_INSTALL_DIR:-$SCRIPT_DIR}
+STATUS_FILE="$INSTALL_DIR/update-status"
 : "${GITHUB_REPOSITORY:?Set GITHUB_REPOSITORY in $CONFIG (owner/repository)}"
 mkdir -p "$INSTALL_DIR"
 echo "Checking for updates…" > "$STATUS_FILE"
