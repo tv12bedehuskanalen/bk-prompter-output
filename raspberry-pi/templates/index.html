@@ -183,8 +183,26 @@
           if (!response.ok) throw new Error();
           if (action === "update" || action === "refresh") refreshPreview();
           message.textContent = action === "update" ? "Output oppdatert." : action === "refresh" ? "Output lastes inn på nytt." : action === "software-update" ? "Programvareoppdatering startet …" : "Starter Raspberry Pi …";
+          if (action === "software-update") waitForUpdate();
         } catch (_) { message.textContent = "Kunne ikke nå kontrolltjenesten. Prøv igjen."; }
         finally { if (action !== "reboot" && action !== "software-update") button.disabled = false; }
+      }
+      function waitForUpdate() {
+        const started = Date.now();
+        const poll = async () => {
+          try {
+            const response = await fetch("/update-status", { cache: "no-store" });
+            const data = await response.json();
+            if ((data.status || "").startsWith("Updated from") || (data.version && data.version !== "{{ version }}")) {
+              message.textContent = "Oppdatering fullført. Laster siden på nytt …";
+              setTimeout(() => window.location.reload(), 700);
+              return;
+            }
+          } catch (_) {}
+          if (Date.now() - started < 180000) setTimeout(poll, 1500);
+          else { updateProgress.classList.remove("active"); message.textContent = "Oppdateringen tar lengre tid enn forventet. Last siden på nytt."; }
+        };
+        setTimeout(poll, 1500);
       }
       document.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => send(button.dataset.action)));
       input.addEventListener("keydown", event => { if (event.key === "Enter") send("update"); });
