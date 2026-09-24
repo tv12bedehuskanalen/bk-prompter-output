@@ -32,13 +32,17 @@ def page_title():
                 return title
     except OSError:
         pass
-    return "Prompter Output"
+    return site_name()
 
 
 def site_name():
     """BK-AES-PROMPTER becomes BK AES; other hostnames remain readable."""
     parts = socket.gethostname().split("-")
     return " ".join(parts[:2]).upper() if len(parts) >= 2 else socket.gethostname().upper()
+
+
+def full_hostname():
+    return socket.gethostname().upper()
 
 
 def update_check_loop():
@@ -91,7 +95,7 @@ def index():
             os.remove(UPDATE_STATUS)
         except OSError:
             pass
-    return render_template("index.html", current_url=current_url, site_name=site_name(), page_title=page_title(), version=app_version(), update_status=update_status, update_available=update_available)
+    return render_template("index.html", current_url=current_url, site_name=site_name(), full_hostname=full_hostname(), page_title=page_title(), version=app_version(), update_status=update_status, update_available=update_available)
 
 
 @app.get("/update-status")
