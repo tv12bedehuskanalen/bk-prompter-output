@@ -13,6 +13,7 @@ VERSION_FILE = os.path.join(os.path.dirname(__file__), "VERSION")
 UPDATE_SCRIPT = os.path.join(os.path.dirname(__file__), "update-bk-prompter.sh")
 UPDATE_STATUS = os.path.join(os.path.dirname(__file__), "update-status")
 UPDATE_AVAILABLE = os.path.join(os.path.dirname(__file__), "update-available")
+TITLE_FILE = os.path.join(os.path.dirname(__file__), "title.txt")
 
 
 def app_version():
@@ -21,6 +22,17 @@ def app_version():
             return "v" + version_file.read().strip().lstrip("v")
     except OSError:
         return "vdev"
+
+
+def page_title():
+    try:
+        with open(TITLE_FILE, encoding="utf-8") as title_file:
+            title = title_file.read().strip()
+            if title:
+                return title
+    except OSError:
+        pass
+    return "Prompter Output"
 
 
 def site_name():
@@ -44,6 +56,11 @@ def index():
     if request.method == "POST":
         if "software_update" in request.form:
             subprocess.Popen([UPDATE_SCRIPT], start_new_session=True)
+        elif "save_title" in request.form:
+            title = request.form.get("title", "").strip()[:80]
+            if title:
+                with open(TITLE_FILE, "w", encoding="utf-8") as title_file:
+                    title_file.write(title + "\n")
         elif "update" in request.form:
             new_url = request.form.get("url", "").strip()
             if new_url:
@@ -74,7 +91,7 @@ def index():
             os.remove(UPDATE_STATUS)
         except OSError:
             pass
-    return render_template("index.html", current_url=current_url, site_name=site_name(), version=app_version(), update_status=update_status, update_available=update_available)
+    return render_template("index.html", current_url=current_url, site_name=site_name(), page_title=page_title(), version=app_version(), update_status=update_status, update_available=update_available)
 
 
 @app.get("/update-status")
