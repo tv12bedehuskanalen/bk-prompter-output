@@ -1,6 +1,6 @@
 # BK Prompter
 
-An offline-first, Norwegian teleprompter for Bedehuskanalen. Version **0.4.0** refines project navigation, preset editing and shared browser identity.
+An offline-first, Norwegian teleprompter for Bedehuskanalen. Version **0.5.0** adds individual screen layouts and live links to shared presets.
 
 ## Run
 
@@ -25,7 +25,7 @@ Default HTTP port: **7890**, listening on all IPv4 interfaces. Default OSC UDP p
 | Editor | http://localhost:7890/?editor |
 | Ren prompterutgang | http://localhost:7890/output |
 | Mobil / fjernkontroll | http://localhost:7890/controller |
-| Prompteroppsett | http://localhost:7890/display |
+| Skjermer | http://localhost:7890/display |
 | System og OSC | http://localhost:7890/settings |
 
 On a phone, the root address automatically opens the mobile controller. Use the server’s LAN address instead of localhost on other devices.
@@ -57,7 +57,15 @@ Under **Prompter ved innlasting** in each script's editor, choose:
 
 The choice saves automatically with the script. These choices apply when the script is loaded by its button, OSC, next/previous navigation, or when opening a different program. Updating a script while it is live does not automatically reapply its loading settings or reset playback.
 
-The **Prompteroppsett** sidebar selects an output screen at the top; mirror/flip controls apply only to that screen. **Gjeldende leseflate** edits the shared live layout. Click a preset name to apply it immediately to the current prompter layout. The pencil beside a preset opens that preset in the same editor, with a readable preview. These edits save to the preset immediately, without changing live output. **Bruk på prompteren** explicitly applies it. Create a new preset by entering a name and pressing **+**; it copies the currently edited layout. Presets persist locally and are included in project export/import. Imported references receive new IDs so they do not overwrite existing presets. Presets referenced by scripts cannot be deleted until those scripts use a different setting choice.
+The **Skjermer** sidebar lists each output screen with its fixed ID and **Åpne skjerm** link. The selected screen is highlighted. Renaming requires **Lagre navn** and an in-app confirmation; the screen ID and URL remain unchanged.
+
+Click a preset name to link the selected screen to it. The screen's own settings are then greyed out, and its loaded preset is shown. The pencil opens the preset editor. Changes apply immediately to every screen linked to that preset, including active outputs. The preview always remains readable.
+
+**Rediger gjeldende leseflate** disconnects the selected screen from its preset and copies all current settings to its own layout. Nothing resets to defaults; subsequent preset edits no longer affect that screen. Mirror/flip remain independent equipment settings for each screen.
+
+Create a new preset by entering a name and pressing **+**; it copies the currently edited layout. Presets are included in project/program export and import. A preset used by a screen or script cannot be deleted until those references are removed.
+
+Script loading policies remain available: **keep** retains each screen's layout/link, **preset** links all screens to the script's preset, and **custom** copies the script's custom settings to all screens and removes their links.
 
 ## Projects, programs and screens
 
@@ -65,7 +73,7 @@ The project menu opens inside the currently loaded project. Use **Alle prosjekte
 
 Programs appear in a list with optional program date and automatic last-modified time. Click the column headings to sort; click again to reverse direction. The folder sidebar narrows the list. The project logo appears above the project title, and the loaded program has a red border and LIVE badge. **Nytt program** sits inside the list. The duplicate button creates a separate program with new internal IDs, retaining scripts, OSC IDs, date, folder and preset choices without loading the copy. The pencil on a program edits its name, date and folder. Browsing does not load a program; opening a program switches the shared context. The loaded project/program appears in the top-right of all control/settings GUIs. The clean output keeps its canvas clear and identifies the context in its browser title.
 
-In **Prompteroppsett → Utgangsskjermer**, create additional named screens with unique IDs. Default screen **1** is available at `/output` or `/output?screen=1`. Other screens use `/output?screen=ID`. Each screen has an editable display name with a permanent ID and URL. Renaming does not change orientation or break screen links. Each screen has independent horizontal mirroring and vertical flipping. All previews remain readable, while outputs share the same content, typography, position and speed. Screen orientation is local equipment configuration and is not changed by script presets. Existing global orientation migrates to screen 1 on upgrade.
+In **Skjermer → Utgangsskjermer**, create additional named screens with unique IDs. Default screen **1** is available at `/output` or `/output?screen=1`. Other screens use `/output?screen=ID`. Each screen has an editable display name with a permanent ID and URL. Renaming does not change orientation or break screen links. Each screen has independent horizontal mirroring and vertical flipping. All previews remain readable. Each screen can have its own typography while outputs follow the shared playback timeline and script position. Screen orientation is local equipment configuration and is not changed by script presets. Existing global orientation migrates to screen 1 on upgrade.
 
 ## System settings
 
@@ -75,7 +83,7 @@ The Settings sidebar has separate OSC, Import/export, Network and Server section
 
 ## Live playback
 
-The local server owns playback time, speed, position, selected script, settings and control lock. Browsers estimate the server’s monotonic clock using timestamped round trips and render transforms on animation frames. Every output uses the same bundled font and logical text width, independent of screen dimensions. Transport corrections are sent continuously, and commands/edits broadcast immediately. A late or reconnecting client joins the current live state.
+The local server owns playback time, speed, position, selected script, settings and control lock. Browsers estimate the server’s monotonic clock using timestamped round trips and render transforms on animation frames. Every output uses the bundled font and a logical layout independent of physical screen resolution. Transport coordinates use a common reference layout. Screens with different typography map reference line starts to the corresponding text in their own layout; scrolling interpolates between those points. Line measurements are rebuilt on content/layout changes, not each animation frame. Transport corrections are sent continuously, and commands/edits broadcast immediately. A late or reconnecting client joins the current live state.
 
 Browser/network scheduling means mathematical zero-delay frame lock is not possible. Normal LAN clients follow the same timeline; the automated browser test measures observed drift. Hardware and loaded-network testing remain necessary before broadcast use.
 

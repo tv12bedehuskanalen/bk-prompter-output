@@ -353,9 +353,23 @@ function bindWorkspace() {
         role: route,
       });
   });
-  $("#screen-select")?.addEventListener("change", (event) => {
-    selectedScreenId = event.target.value;
-    renderDisplayWorkspace();
+  $("#screen-rename")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const screen = selectedScreen(),
+      name = $("#screen-name-edit").value.trim();
+    if (!name) return;
+    confirmGUI("Endre skjermnavn?", `${screen.name} → ${name}`, async () => {
+      await request({
+        type: "edit",
+        action: "saveScreen",
+        id: screen.id,
+        name,
+      });
+      if (selectedScreenId === screen.id) {
+        $("#screen-name-edit").value = name;
+        $("#screen-name-edit").dataset.original = name;
+      }
+    });
   });
   $("#preset-edit-name")?.addEventListener("change", (event) =>
     request({
@@ -424,15 +438,6 @@ function bindWorkspace() {
   );
   document.addEventListener("change", (e) => {
     const el = e.target;
-    if (el.dataset.screenName) {
-      const screen = state.screens.find((s) => s.id === el.dataset.screenName);
-      request({
-        type: "edit",
-        action: "saveScreen",
-        id: screen.id,
-        name: el.value,
-      }).catch((e) => toast(e.message));
-    }
     if (el.dataset.screen) {
       const screen = state.screens.find((s) => s.id === el.dataset.screen);
       request({
@@ -471,11 +476,15 @@ function bindWorkspace() {
     }
     if (b.dataset.insertBefore !== undefined)
       nameDialog("Script", b.dataset.insertBefore);
-    if (b.dataset.applyPreset)
+    if (b.dataset.applyPreset) {
+      displayPresetId = null;
+      layoutKey = "";
+      render();
       request({
         type: "edit",
         action: "applyPreset",
         id: b.dataset.applyPreset,
+        screenId: selectedScreenId,
       })
         .then(() => {
           displayPresetId = null;
@@ -483,15 +492,27 @@ function bindWorkspace() {
           render();
         })
         .catch((e) => toast(e.message));
+    }
+    if (b.dataset.selectScreen) {
+      selectedScreenId = b.dataset.selectScreen;
+      displayPresetId = null;
+      layoutKey = "";
+      render();
+    }
     if (b.dataset.editPreset) {
       displayPresetId = b.dataset.editPreset;
       layoutKey = "";
       render();
     }
     if (b.id === "edit-live-layout") {
+      const screenId = selectedScreenId;
       displayPresetId = null;
       layoutKey = "";
       render();
+      if (selectedScreen()?.presetId)
+        request({ type: "edit", action: "detachScreenPreset", screenId }).catch(
+          (e) => toast(e.message),
+        );
     }
     if (b.dataset.editProject)
       organizationDialog("Project", b.dataset.editProject);

@@ -544,6 +544,89 @@ test("renaming a screen retains its stable ID and orientation", () => {
     name: "Ny tittel",
     mirror: true,
     flip: false,
+    presetId: null,
+    settings: engine.data.settings,
   });
   assert.equal(engine.data.screens.length, 1);
+});
+
+test("screens follow shared preset edits, unlink with current values, and persist independently", () => {
+  let now = 1000;
+  const engine = new Engine(undefined, () => now);
+  const reference = structuredClone(engine.data.settings);
+  engine.edit("a", {
+    action: "saveScreen",
+    create: true,
+    id: "2",
+    name: "Two",
+    mirror: true,
+  });
+  engine.edit("a", {
+    action: "savePreset",
+    name: "Studio",
+    value: { fontSize: 72, margin: 180 },
+  });
+  const preset = engine.data.displayPresets[0];
+  for (const screen of engine.data.screens)
+    engine.edit("a", {
+      action: "applyPreset",
+      id: preset.id,
+      screenId: screen.id,
+    });
+  engine.control("a", "play");
+  now += 1000;
+  const position = engine.position();
+  engine.edit("a", {
+    action: "updatePreset",
+    id: preset.id,
+    value: { fontSize: 90, background: "#123456" },
+  });
+  assert.equal(engine.position(), position);
+  assert.equal(engine.data.transport.playing, true);
+  assert.equal(engine.screenSettings("1").fontSize, 90);
+  assert.equal(engine.screenSettings("2").fontSize, 90);
+  assert.throws(() =>
+    engine.edit("a", {
+      action: "screenSettings",
+      screenId: "1",
+      value: { fontSize: 40 },
+    }),
+  );
+  assert.throws(() =>
+    engine.edit("a", { action: "deletePreset", id: preset.id }),
+  );
+  const before = engine.screenSettings("1");
+  engine.edit("a", { action: "detachScreenPreset", screenId: "1" });
+  assert.deepEqual(engine.screenSettings("1"), before);
+  assert.equal(engine.data.screens[0].presetId, null);
+  engine.edit("a", {
+    action: "updatePreset",
+    id: preset.id,
+    value: { fontSize: 64 },
+  });
+  assert.equal(engine.screenSettings("1").fontSize, 90);
+  assert.equal(engine.screenSettings("2").fontSize, 64);
+  engine.edit("a", {
+    action: "screenSettings",
+    screenId: "1",
+    value: { margin: 240 },
+  });
+  assert.equal(engine.screenSettings("2").margin, 180);
+  assert.deepEqual(
+    engine.data.settings,
+    reference,
+    "screen layouts do not change the playback reference",
+  );
+  const restored = new Engine(structuredClone(engine.data));
+  assert.equal(restored.screenSettings("1").margin, 240);
+  assert.equal(restored.screenSettings("2").fontSize, 64);
+  assert.equal(restored.data.screens[1].mirror, true);
+});
+test("older screens inherit saved appearance on upgrade without creating preset links", () => {
+  const data = initial();
+  data.settings.fontSize = 76;
+  data.screens = [{ id: "1", name: "Original", mirror: true, flip: false }];
+  const engine = new Engine(data);
+  assert.equal(engine.screenSettings("1").fontSize, 76);
+  assert.equal(engine.data.screens[0].presetId, null);
 });

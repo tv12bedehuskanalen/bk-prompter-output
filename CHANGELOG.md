@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+
+- Renamed Prompteroppsett to **Skjermer**. Screens appear in a selectable list with a clear active indicator, fixed IDs and individual output links.
+- Screen name changes require an explicit save and in-app confirmation.
+- Loading a preset links the selected screen to it. Editing the preset updates every linked screen in realtime; independent screens remain unchanged.
+- Linked screen settings are read-only and show the loaded preset. **Rediger gjeldende leseflate** removes the link while retaining every current appearance setting.
+- Individual screen layouts use the shared playback reference; reference text lines map into each screen's typography without per-frame text measurement. Position and running state are preserved during layout updates.
+- Existing screens inherit their saved appearance on upgrade and start unlinked. Projects, settings, presets, IDs and URLs are retained.
+
 ## 0.4.0
 
 - Project program lists now show the project logo, folder sidebar, clear back button, in-list creation, duplication and a red LIVE row. Removed redundant headings and status copy.

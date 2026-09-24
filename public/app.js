@@ -229,7 +229,7 @@ function header() {
   return `<header><a class="menu-link" href="/projects" title="Prosjekter og programmer" aria-label="Prosjekter og programmer">▦</a><a class="brand" href="/?editor"><img class="brand-symbol" src="${esc(CONFIG.logoSymbol)}" alt="Bedehuskanalen">${esc(CONFIG.shortName)} <small>${esc(CONFIG.badge)}</small></a><nav>${[
     ["editor", "Editor", "/?editor"],
     ["controller", "Kontroll", "/controller"],
-    ["display", "Prompteroppsett", "/display"],
+    ["display", "Skjermer", "/display"],
     ["settings", "Innstillinger", "/settings"],
   ]
     .map(
@@ -258,7 +258,7 @@ function build() {
     else if (route === "projects")
       body = `<main class="project-menu"><div class="menu-heading"><div><img id="menu-logo" class="project-logo" alt="Prosjektlogo" hidden><h1 id="menu-title">Dine prosjekter</h1></div><button class="primary" id="menu-create" data-create="Project">+ Nytt prosjekt</button></div><div class="menu-breadcrumb"><button id="menu-back" class="back-button" hidden>← Alle prosjekter</button></div><div class="project-grid"></div></main>`;
     else if (route === "controller")
-      body = `<main class="mobile-control"><span class="eyebrow">Fjernkontroll</span><h1 id="controller-title">Prompter</h1><span class="muted" id="controller-program"></span>${preview()}${transport()}<div class="control-divider"></div><div class="transport-row"><button data-control="previous">← Forrige manus</button><button data-control="chapter">Neste kapittel →</button></div><div class="chapter-list" style="margin-top:20px"></div><a class="mobile-editor-link" href="/?editor">Åpne manusredigering →</a><a class="mobile-editor-link" href="/display">Prompteroppsett →</a></main>`;
+      body = `<main class="mobile-control"><span class="eyebrow">Fjernkontroll</span><h1 id="controller-title">Prompter</h1><span class="muted" id="controller-program"></span>${preview()}${transport()}<div class="control-divider"></div><div class="transport-row"><button data-control="previous">← Forrige manus</button><button data-control="chapter">Neste kapittel →</button></div><div class="chapter-list" style="margin-top:20px"></div><a class="mobile-editor-link" href="/?editor">Åpne manusredigering →</a><a class="mobile-editor-link" href="/display">Skjermer →</a></main>`;
     else if (route === "display") body = displayWorkspace();
     else body = settingsWorkspace();
     $("#app").innerHTML = header() + body;
@@ -287,14 +287,16 @@ function updateConnection() {
     const missing = connected && state && !outputScreen();
     $(".output-warning").hidden = connected && !missing;
     $(".output-warning").textContent = missing
-      ? "Skjerm-ID finnes ikke. Velg en skjerm i Prompteroppsett."
+      ? "Skjerm-ID finnes ikke. Velg en skjerm i Skjermer."
       : "Frakoblet — avspilling fryst";
     if (stage) stage.style.visibility = missing ? "hidden" : "visible";
   }
   for (const el of $$(
     "[data-control],[data-step],#speed,#position,#hold,[data-setting],#save-network",
   ))
-    el.disabled = !permitted();
+    el.disabled =
+      !permitted() ||
+      (el.hasAttribute("data-setting") && displayFieldsLocked());
   if ($("#editor"))
     $("#editor").contentEditable = String(permitted() && !!editingScript());
 }
@@ -464,7 +466,10 @@ function setScriptSettings(script) {
   renderPresetOptions(true);
   $("#script-display-mode").value = script?.displayMode || "keep";
   $("#script-preset").value = script?.presetId || "";
-  customDraft = { ...state.settings, ...script?.customSettings };
+  customDraft = {
+    ...settingsForScreen(state.screens.find((s) => s.id === "1")),
+    ...script?.customSettings,
+  };
   for (const input of $$("[data-custom-setting]")) {
     const value = customDraft[input.dataset.customSetting];
     if (input.type === "checkbox") input.checked = !!value;
@@ -534,8 +539,7 @@ function updateClients() {
   panel.dataset.key = key;
   panel.innerHTML = `<form id="client-name-form"><label for="client-name">Ditt klientnavn</label><div class="client-name-row"><input id="client-name" maxlength="80" value="${esc(clients.find((c) => c.id === myId)?.name || clientName)}"><button>Lagre</button></div></form><div class="eyebrow">Tilkoblede klienter</div>${[...clients, { id: "osc", name: "OSC · Automatisering", role: "osc" }].map((c) => `<div class="client-row"><span>${esc(c.name)}${c.id === myId ? " (deg)" : ""}<br><small class="muted">${esc(c.roles?.join(" · ") || c.role)}${c.windows ? ` · ${c.windows} vinduer` : ""}</small></span><button data-lock="${esc(c.id)}">${state.lock?.owner === c.id ? "🔒 Låst" : "Gi kontroll"}</button></div>`).join("")}<button data-lock="" style="width:100%">Frigi til alle</button>`;
 }
-function applyStyle(el) {
-  const c = visualSettings();
+function applyStyle(el, c = visualSettings()) {
   Object.assign(el.style, {
     fontSize: c.fontSize + "px",
     lineHeight: c.lineHeight,
@@ -547,12 +551,18 @@ function applyStyle(el) {
 function updateLayout() {
   if (!fontsReady) return;
   const { s } = current(),
-    key = JSON.stringify([s?.id, s?.version, visualSettings(), state.screens]);
+    key = JSON.stringify([
+      s?.id,
+      s?.version,
+      state.settings,
+      visualSettings(),
+      route === "output" ? outputScreen() : null,
+    ]);
   if (key === layoutKey) return;
   layoutKey = key;
   ruler.style.width = CONFIG.logicalWidth + "px";
   ruler.innerHTML = s?.html || "";
-  applyStyle(ruler);
+  applyStyle(ruler, state.settings);
   if (content) {
     stage.style.width = CONFIG.logicalWidth + "px";
     content.style.width = CONFIG.logicalWidth + "px";
@@ -565,6 +575,7 @@ function updateLayout() {
     guide.style.top = visualSettings().guidePosition + "%";
   }
   maxPosition = Math.max(0, ruler.getBoundingClientRect().height);
+  buildDisplayPositionMap();
   chapters = $$("h2", ruler).map((el) => ({
     name: el.textContent,
     position: Math.max(0, el.offsetTop),
@@ -580,7 +591,6 @@ function updateLayout() {
   reportLayout();
 }
 function reportLayout() {
-  if (route === "display" && displayPresetId) return;
   const { s } = current();
   if (!s || !fontsReady || !connected || lastLayoutSent === layoutKey) return;
   lastLayoutSent = layoutKey;
@@ -599,7 +609,7 @@ function animate() {
     if (stage && viewport) {
       const width = viewport.clientWidth,
         height = viewport.clientHeight;
-      stage.style.transform = `translate3d(0,${(height * visualSettings().guidePosition) / 100 - (p * width) / CONFIG.logicalWidth}px,0) scale(${width / CONFIG.logicalWidth})`;
+      stage.style.transform = `translate3d(0,${(height * visualSettings().guidePosition) / 100 - (displayPosition(p) * width) / CONFIG.logicalWidth}px,0) scale(${width / CONFIG.logicalWidth})`;
     }
     if ($("#position") && document.activeElement !== $("#position"))
       $("#position").value = maxPosition ? (p / maxPosition) * 1000 : 0;
@@ -808,6 +818,7 @@ function bind() {
       type: "edit",
       action: "applyPreset",
       id: displayPresetId,
+      screenId: selectedScreenId,
     }).catch((e) => toast(e.message)),
   );
   $("#delete-preset")?.addEventListener("click", () => {
@@ -940,6 +951,7 @@ function bind() {
   }, 650);
   for (let el of $$("[data-setting]"))
     el.addEventListener("input", () => {
+      if (el.disabled) return;
       const value =
         el.type === "checkbox"
           ? el.checked
@@ -949,8 +961,11 @@ function bind() {
       request({
         type: "edit",
         action:
-          route === "display" && displayPresetId ? "updatePreset" : "settings",
+          route === "display" && displayPresetId
+            ? "updatePreset"
+            : "screenSettings",
         id: displayPresetId,
+        screenId: selectedScreenId,
         value: { [el.dataset.setting]: value },
       }).catch((e) => toast(e.message));
     });

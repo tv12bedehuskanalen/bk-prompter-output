@@ -239,11 +239,22 @@ const { initial } = require("../server/state.cjs");
       ).includes("-1"),
     );
     await settings.locator("#screen-name-edit").fill("Kamera hoved");
-    await settings.locator("#screen-name-edit").press("Tab");
+    await settings.locator("#screen-rename button").click();
+    assert.notEqual(
+      server.engine.data.screens[0].name,
+      "Kamera hoved",
+      "rename requires confirmation",
+    );
+    await settings.locator("dialog button.primary").click();
     await settings.waitForFunction(() =>
       document
-        .querySelector("#screen-select")
-        .selectedOptions[0].textContent.includes("Kamera hoved"),
+        .querySelector('[data-select-screen="1"]')
+        .textContent.includes("Kamera hoved"),
+    );
+    assert.equal(await settings.locator("#screen-select").count(), 0);
+    assert.equal(
+      await settings.locator(".screen-choice.selected a").getAttribute("href"),
+      "/output?screen=1",
     );
     assert.equal(server.engine.data.screens[0].id, "1");
     assert.equal(server.engine.data.screens[0].mirror, true);
@@ -276,20 +287,20 @@ const { initial } = require("../server/state.cjs");
         input.dispatchEvent(new Event("input", { bubbles: true }));
       }, value);
     await setRange(settings, "#fontSize", 80);
-    await waitFor(() => server.engine.data.settings.fontSize === 80);
+    await waitFor(() => server.engine.screenSettings("1").fontSize === 80);
     await settings.locator("#preset-name").fill("Studio · stor tekst");
     await settings.locator("#save-preset").click();
     await waitFor(() => server.engine.data.displayPresets.length === 1);
     const presetId = server.engine.data.displayPresets[0].id;
     await setRange(settings, "#fontSize", 56);
-    await waitFor(() => server.engine.data.settings.fontSize === 56);
+    await waitFor(() => server.engine.screenSettings("1").fontSize === 56);
     await settings.locator("[data-edit-preset]").first().click();
     await setRange(settings, "#fontSize", 92);
     await waitFor(
       () => server.engine.data.displayPresets[0].settings.fontSize === 92,
     );
     assert.equal(
-      server.engine.data.settings.fontSize,
+      server.engine.screenSettings("1").fontSize,
       56,
       "preset edits must not change live layout",
     );
@@ -298,10 +309,89 @@ const { initial } = require("../server/state.cjs");
       () => server.engine.data.displayPresets[0].settings.fontSize === 80,
     );
     await settings.locator("[data-apply-preset]").first().click();
-    await waitFor(() => server.engine.data.settings.fontSize === 80);
+    await waitFor(() => server.engine.screenSettings("1").fontSize === 80);
     await settings.locator("#preset-edit-actions").waitFor({ state: "hidden" });
+    await settings.waitForFunction(
+      () => document.querySelector("#fontSize").disabled,
+    );
+    await settings.locator('[data-select-screen="2"]').click();
+    await settings.locator("[data-apply-preset]").first().click();
+    await waitFor(() =>
+      server.engine.data.screens.every((s) => s.presetId === presetId),
+    );
+    await settings.locator("[data-edit-preset]").first().click();
+    await setRange(settings, "#fontSize", 88);
+    await waitFor(
+      () =>
+        server.engine.screenSettings("1").fontSize === 88 &&
+        server.engine.screenSettings("2").fontSize === 88,
+    );
+    await settings.locator('[data-select-screen="1"]').click();
+    await settings.locator("#edit-live-layout").click();
+    await waitFor(() => !server.engine.data.screens[0].presetId);
+    assert.equal(
+      server.engine.screenSettings("1").fontSize,
+      88,
+      "unlink retains loaded appearance",
+    );
+    await settings.locator("[data-edit-preset]").first().click();
+    await setRange(settings, "#fontSize", 96);
+    await waitFor(() => server.engine.screenSettings("2").fontSize === 96);
+    assert.equal(
+      server.engine.screenSettings("1").fontSize,
+      88,
+      "unlinked screen no longer follows edits",
+    );
+    // A reference line starts at the same reading point on differently formatted screens.
+    const anchor = await output.evaluate(() => {
+      const root = document.querySelector(".ruler"),
+        node = document.createTreeWalker(root, NodeFilter.SHOW_TEXT).nextNode(),
+        range = document.createRange(),
+        base = root.getBoundingClientRect().top;
+      let previous = -1;
+      for (let i = 0; i < node.length; i++) {
+        range.setStart(node, i);
+        range.setEnd(node, i + 1);
+        const y = range.getBoundingClientRect().top - base;
+        if (y > 150 && y > previous + 0.5) return { index: i, position: y };
+        previous = y;
+      }
+      throw Error("No reference line found");
+    });
+    await editor.evaluate(
+      (position) =>
+        request({ type: "control", action: "seek", value: position }),
+      anchor.position,
+    );
+    for (const page of [output, other])
+      await page.waitForFunction((index) => {
+        const root = document.querySelector(".stage .prompt-content"),
+          node = document
+            .createTreeWalker(root, NodeFilter.SHOW_TEXT)
+            .nextNode(),
+          range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + 1);
+        const view = document
+          .querySelector(".stage-viewport")
+          .getBoundingClientRect();
+        return (
+          Math.abs(
+            range.getBoundingClientRect().top - (view.top + view.height * 0.3),
+          ) < 2
+        );
+      }, anchor.index);
+    await editor.locator('[data-control="reset"]').click();
+    await setRange(settings, "#fontSize", 80);
+    await waitFor(() => server.engine.screenSettings("2").fontSize === 80);
+    await settings.locator("#edit-live-layout").click();
+    await settings.waitForFunction(
+      () =>
+        !document.querySelector("#fontSize").disabled &&
+        document.querySelector("#preset-edit-actions").hidden,
+    );
     await setRange(settings, "#fontSize", 56);
-    await waitFor(() => server.engine.data.settings.fontSize === 56);
+    await waitFor(() => server.engine.screenSettings("1").fontSize === 56);
     const originalProgram = { ...server.engine.data.selection };
     const secondId = server.engine.current().e.scripts[1].id;
     await editor.locator(".script-open").nth(1).click();
@@ -326,7 +416,7 @@ const { initial } = require("../server/state.cjs");
       () => server.engine.current().e.scripts[1].displayMode === "preset",
     );
     assert.equal(
-      server.engine.data.settings.fontSize,
+      server.engine.screenSettings("1").fontSize,
       56,
       "editing a script preset must not affect current output",
     );
@@ -334,7 +424,7 @@ const { initial } = require("../server/state.cjs");
     await waitFor(() => server.engine.current().s.id === secondId);
     assert.equal(server.engine.data.transport.playing, false);
     assert.equal(server.engine.position(), 0);
-    assert.equal(server.engine.data.settings.fontSize, 80);
+    assert.equal(server.engine.screenSettings("1").fontSize, 80);
     await mobile.waitForFunction(
       () =>
         document.querySelector("#controller-title").textContent ===
@@ -349,17 +439,17 @@ const { initial } = require("../server/state.cjs");
     await editor.locator('[data-custom-setting="fontSize"]').fill("44");
     await editor.locator("#save").click();
     await waitFor(() => server.engine.current().s.displayMode === "custom");
-    assert.equal(server.engine.data.settings.fontSize, 80);
+    assert.equal(server.engine.screenSettings("1").fontSize, 80);
     await editor.locator(".load-script").nth(1).click();
-    await waitFor(() => server.engine.data.settings.fontSize === 44);
+    await waitFor(() => server.engine.screenSettings("1").fontSize === 44);
     assert.equal(server.engine.data.displayPresets.length, 1);
     await editor.locator("#script-display-mode").selectOption("keep");
     await editor.locator("#save").click();
     await waitFor(() => server.engine.current().s.displayMode === "keep");
     await setRange(settings, "#fontSize", 68);
-    await waitFor(() => server.engine.data.settings.fontSize === 68);
+    await waitFor(() => server.engine.screenSettings("1").fontSize === 68);
     await editor.locator(".load-script").nth(1).click();
-    assert.equal(server.engine.data.settings.fontSize, 68);
+    assert.equal(server.engine.screenSettings("1").fontSize, 68);
     await editor.locator("#editor").click();
     await editor.locator("#add-chapter").click();
     await editor.locator("#chapter-title").fill("Andre del");
@@ -460,7 +550,7 @@ const { initial } = require("../server/state.cjs");
     await editor.locator(".script-open").first().click();
     await editor.locator(".load-script").first().click();
     await setRange(settings, "#fontSize", 56);
-    await waitFor(() => server.engine.data.settings.fontSize === 56);
+    await waitFor(() => server.engine.screenSettings("1").fontSize === 56);
     await editor
       .locator(".script-display-panel")
       .evaluate((el) => (el.open = false));

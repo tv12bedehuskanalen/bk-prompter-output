@@ -1,6 +1,6 @@
 {
   "name": "bk-prompter",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Synkronisert teleprompter for redaksjon og studio",
   "main": "desktop/main.cjs",
   "private": true,
@@ -10,7 +10,7 @@
     "test": "node --test test/*.test.cjs",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
-    "check": "node --check server/index.cjs && node --check public/app.js && node --check public/workspace.js && node --check public/display.js && node --check public/settings.js && node --check desktop/main.cjs",
+    "check": "node --check server/index.cjs && node --check public/app.js && node --check public/workspace.js && node --check public/display.js && node --check public/settings.js && node --check public/playback-layout.js && node --check desktop/main.cjs",
     "test:browser": "node scripts/browser-check.cjs",
     "format": "prettier --write public/*.{js,css,html} config/*.cjs server/*.cjs desktop/*.{cjs,js,html} test/*.cjs scripts/*.cjs",
     "preversion": "npm run check && npm test",

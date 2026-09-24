@@ -2750,3 +2750,145 @@ dialog select {
   color: var(--accent);
   background: transparent;
 }
+/* Screen selection and linked layouts */
+#screen-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.screen-choice {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--page);
+  overflow: hidden;
+}
+.screen-choice.selected {
+  border-color: var(--accent);
+  background: var(--selected);
+  box-shadow: inset 3px 0 var(--accent);
+}
+.screen-choice > button {
+  position: relative;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  padding: 12px 32px 5px 14px;
+}
+.screen-choice strong,
+.screen-choice small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.screen-choice strong {
+  font-size: 14px;
+}
+.screen-choice small {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.screen-choice > a {
+  display: block;
+  padding: 4px 14px 11px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.screen-choice > a:hover {
+  color: var(--accent);
+}
+.screen-choice.selected > a {
+  color: var(--accent);
+}
+.screen-selection-dot {
+  display: none;
+  position: absolute;
+  right: 13px;
+  top: 18px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.screen-choice.selected .screen-selection-dot {
+  display: block;
+}
+#screen-rename > label {
+  font-size: 11px;
+  color: var(--muted);
+  display: block;
+  margin: 18px 0 8px;
+}
+.screen-name-row {
+  display: flex;
+  gap: 6px;
+  align-items: start;
+}
+.screen-name-row input {
+  min-width: 0;
+  flex: 1;
+}
+.screen-name-row button {
+  padding: 10px 8px;
+  white-space: nowrap;
+  font-size: 11px;
+}
+#screen-identity {
+  font-size: 10px;
+  color: var(--muted);
+}
+.screen-check {
+  display: block;
+  font-size: 12px;
+  margin: 16px 0;
+}
+.layout-choice.linked-layout {
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+.layout-choice.linked-layout:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+#screen-preset-status {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 9px 4px;
+}
+.preset-item.loaded-preset {
+  border-color: var(--accent);
+}
+.preset-load small {
+  display: block;
+  margin-top: 5px;
+  color: var(--accent);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+.linked-readonly {
+  opacity: 0.42;
+}
+#layout-link-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+#layout-link-banner button {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.display-editor-heading > .eyebrow {
+  display: block;
+  margin-bottom: 10px;
+}

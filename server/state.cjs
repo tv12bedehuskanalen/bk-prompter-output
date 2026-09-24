@@ -146,6 +146,15 @@ class Engine {
         flip: !!data.settings.flip,
       },
     ];
+    for (const screen of this.data.screens) {
+      screen.settings = displaySettings(screen.settings || data.settings);
+      screen.presetId ??= null;
+      if (
+        screen.presetId &&
+        !this.data.displayPresets.some((p) => p.id === screen.presetId)
+      )
+        screen.presetId = null;
+    }
     for (const p of data.projects) {
       p.folders ??= [];
       p.color ??= "#32c6cb";
@@ -161,6 +170,14 @@ class Engine {
     this.layout = null;
     this.data.transport = { ...data.transport, playing: false, at: now() };
     this.data.lock = null;
+  }
+  screenSettings(id) {
+    const screen = this.data.screens.find((s) => s.id === id);
+    if (!screen) throw Error("Ukjent skjerm.");
+    return displaySettings(
+      this.data.displayPresets.find((p) => p.id === screen.presetId)
+        ?.settings || screen.settings,
+    );
   }
   current() {
     let p = this.data.projects.find(
@@ -274,6 +291,12 @@ class Engine {
       this.data.settings = displaySettings(preset.settings);
     } else if (script?.displayMode === "custom")
       this.data.settings = displaySettings(script.customSettings);
+    if (script?.displayMode === "preset" || script?.displayMode === "custom")
+      for (const screen of this.data.screens) {
+        screen.settings = displaySettings(this.data.settings);
+        screen.presetId =
+          script.displayMode === "preset" ? script.presetId : null;
+      }
     this.data.selection.script = id;
     this.data.transport.position = 0;
     this.data.transport.playing = false;
@@ -414,7 +437,11 @@ class Engine {
             throw Error("Skriv et unikt navn.");
           preset.name = name;
         }
+        this.anchor();
         preset.settings = settings;
+        for (const screen of this.data.screens)
+          if (screen.presetId === preset.id)
+            screen.settings = displaySettings(settings);
         break;
       }
       case "updateProject": {
@@ -453,7 +480,12 @@ class Engine {
           flip: "flip" in msg ? !!msg.flip : !!screen?.flip,
         };
         if (screen) Object.assign(screen, value);
-        else this.data.screens.push(value);
+        else
+          this.data.screens.push({
+            ...value,
+            settings: displaySettings(this.data.settings),
+            presetId: null,
+          });
         break;
       }
       case "deleteScreen":
@@ -567,12 +599,47 @@ class Engine {
       case "applyPreset": {
         const preset = this.data.displayPresets.find((x) => x.id === msg.id);
         if (!preset) throw Error("Ukjent forhåndsinnstilling.");
+        const screens = msg.screenId
+          ? this.data.screens.filter((s) => s.id === msg.screenId)
+          : this.data.screens;
+        if (!screens.length) throw Error("Ukjent skjerm.");
         this.anchor();
-        this.data.settings = displaySettings(preset.settings);
-        this.layout = null;
+        for (const screen of screens) {
+          screen.presetId = preset.id;
+          screen.settings = displaySettings(preset.settings);
+        }
+        if (!msg.screenId) {
+          this.data.settings = displaySettings(preset.settings);
+          this.layout = null;
+        }
+        break;
+      }
+      case "detachScreenPreset": {
+        const screen = this.data.screens.find((s) => s.id === msg.screenId);
+        if (!screen) throw Error("Ukjent skjerm.");
+        const settings = this.screenSettings(screen.id);
+        this.anchor();
+        screen.settings = settings;
+        screen.presetId = null;
+        break;
+      }
+      case "screenSettings": {
+        const screen = this.data.screens.find((s) => s.id === msg.screenId);
+        if (!screen) throw Error("Ukjent skjerm.");
+        if (screen.presetId)
+          throw Error(
+            "Skjermen bruker en forhåndsinnstilling. Rediger den eller frigjør leseflaten først.",
+          );
+        const settings = displaySettings(msg.value, screen.settings);
+        this.anchor();
+        screen.settings = settings;
         break;
       }
       case "deletePreset": {
+        if (this.data.screens.some((s) => s.presetId === msg.id))
+          throw Error(
+            "Forhåndsinnstillingen brukes av en skjerm. Frigjør skjermen først.",
+          );
         if (
           this.data.projects.some((p) =>
             p.episodes.some((e) =>
@@ -725,6 +792,10 @@ class Engine {
         const out = displaySettings(msg.value, this.data.settings);
         this.anchor();
         Object.assign(this.data.settings, out);
+        for (const screen of this.data.screens) {
+          screen.presetId = null;
+          screen.settings = displaySettings(out);
+        }
         this.layout = null;
         break;
       }

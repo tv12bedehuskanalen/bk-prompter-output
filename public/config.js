@@ -9,7 +9,7 @@ window.BK_CONFIG = {
   favicon: "/favicon.svg",
   badge: "BETA",
   editorTitle: "Editor",
-  displayTitle: "Prompteroppsett",
+  displayTitle: "Skjermer",
   settingsTitle: "Innstillinger",
   tagline: "",
   scriptColors: [
