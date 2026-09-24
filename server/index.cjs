@@ -95,11 +95,22 @@ async function startServer(options = {}) {
     broadcast({
       type: "state",
       state: engine.snapshot(),
-      clients: [...clients.values()].map(({ id, name, role }) => ({
-        id,
-        name,
-        role,
-      })),
+      clients: [...clients.values()].reduce((groups, c) => {
+        let group = groups.find((g) => g.id === c.id);
+        if (!group) {
+          group = {
+            id: c.id,
+            name: c.name,
+            role: c.role,
+            roles: [],
+            windows: 0,
+          };
+          groups.push(group);
+        }
+        group.windows++;
+        if (!group.roles.includes(c.role)) group.roles.push(c.role);
+        return groups;
+      }, []),
       status: status(),
     });
   }
@@ -204,6 +215,26 @@ async function startServer(options = {}) {
     next();
   });
   app.get("/api/status", (req, res) => res.json(status()));
+  app.get("/api/export/project/:id", (req, res) => {
+    const project = engine.data.projects.find((p) => p.id === req.params.id);
+    if (!project) return res.status(404).json({ error: "Ukjent prosjekt." });
+    res
+      .attachment("bk-project.json")
+      .json({ ...repository.exportProjects(engine.data), projects: [project] });
+  });
+  app.get("/api/export/program/:id", (req, res) => {
+    const program = engine.data.projects
+      .flatMap((p) => p.episodes)
+      .find((e) => e.id === req.params.id);
+    if (!program) return res.status(404).json({ error: "Ukjent program." });
+    res.attachment("bk-program.json").json({
+      schema: 1,
+      kind: "program",
+      appVersion: version,
+      program,
+      displayPresets: engine.data.displayPresets,
+    });
+  });
   app.get("/api/export", (req, res) =>
     res
       .attachment("bk-prompter-prosjekter.json")
@@ -251,7 +282,8 @@ async function startServer(options = {}) {
     }
   });
   wss.on("connection", (ws) => {
-    const id = randomUUID();
+    const connectionId = randomUUID();
+    let id = connectionId;
     clients.set(ws, { id, name: "Ny klient", role: "editor", alive: true });
     send(ws, { type: "welcome", id });
     snapshot();
@@ -269,6 +301,16 @@ async function startServer(options = {}) {
           return;
         }
         if (msg.type === "hello") {
+          if (
+            !client.identified &&
+            typeof msg.identity === "string" &&
+            /^[a-zA-Z0-9-]{16,80}$/.test(msg.identity)
+          ) {
+            id = "browser-" + msg.identity;
+            client.id = id;
+            client.identified = true;
+            send(ws, { type: "welcome", id });
+          }
           client.name = String(msg.name || "Klient").slice(0, 48);
           client.role = [
             "editor",
@@ -279,6 +321,8 @@ async function startServer(options = {}) {
           ].includes(msg.role)
             ? msg.role
             : "editor";
+          for (const other of clients.values())
+            if (other.id === id) other.name = client.name;
           snapshot();
           return;
         }
@@ -303,7 +347,8 @@ async function startServer(options = {}) {
           }
           return;
         }
-        if (msg.type === "control") engine.control(id, msg.action, msg.value);
+        if (msg.type === "control")
+          engine.control(id, msg.action, msg.value, connectionId);
         else if (msg.type === "edit") engine.edit(id, msg);
         else if (msg.type === "lock") {
           if (
@@ -321,6 +366,15 @@ async function startServer(options = {}) {
           engine.anchor();
           engine.holds.clear();
           engine.data.lock = msg.owner ? { owner: msg.owner, by: id } : null;
+        } else if (msg.type === "lifecycle") {
+          if (!engine.allowed(id)) throw Error("Kontrollen er låst.");
+          if (!["restart", "shutdown"].includes(msg.action))
+            throw Error("Ukjent serverhandling.");
+          if (!events.listenerCount("lifecycle"))
+            throw Error("Denne serveren støtter ikke fjernomstart.");
+          send(ws, { type: "ack", requestId: msg.requestId });
+          setTimeout(() => events.emit("lifecycle", msg.action), 250);
+          return;
         } else if (msg.type === "network") {
           if (!engine.allowed(id)) throw Error("Kontrollen er låst.");
           let config = {
@@ -350,8 +404,11 @@ async function startServer(options = {}) {
       }
     });
     ws.on("close", () => {
-      engine.disconnect(id);
+      engine.anchor();
+      engine.holds.delete(connectionId);
       clients.delete(ws);
+      if (![...clients.values()].some((c) => c.id === id))
+        engine.disconnect(id);
       changed();
     });
     ws.on("error", () => ws.close());
@@ -439,17 +496,39 @@ async function startServer(options = {}) {
     },
   };
 }
-if (require.main === module)
-  startServer()
-    .then((app) => {
-      console.log(
-        `BK Prompter ${version}: http://localhost:${app.status().port}`,
-      );
-      for (let signal of ["SIGINT", "SIGTERM"])
-        process.on(signal, () => app.close().then(() => process.exit()));
-    })
-    .catch((e) => {
-      console.error(e.message);
-      process.exitCode = 1;
+if (require.main === module) {
+  let running,
+    changing = false;
+  async function boot() {
+    running = await startServer();
+    console.log(
+      `BK Prompter ${version}: http://localhost:${running.status().port}`,
+    );
+    running.events.on("lifecycle", async (action) => {
+      if (changing) return;
+      changing = true;
+      try {
+        await running.close();
+        if (action === "restart") {
+          await boot();
+          changing = false;
+        } else process.exit();
+      } catch (error) {
+        console.error(error.message);
+        process.exitCode = 1;
+      }
     });
+  }
+  for (const signal of ["SIGINT", "SIGTERM"])
+    process.on(signal, async () => {
+      if (changing) return;
+      changing = true;
+      await running?.close();
+      process.exit();
+    });
+  boot().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}
 module.exports = { startServer, interfaces };

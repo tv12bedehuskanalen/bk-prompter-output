@@ -451,3 +451,99 @@ test("output orientation belongs to each screen and survives script presets and 
     engine.data.screens,
   );
 });
+
+test("program copies have fresh script IDs, retain OSC IDs and never change the live selection", () => {
+  const engine = new Engine(),
+    { p, e, s } = engine.current(),
+    selection = { ...engine.data.selection };
+  engine.edit("a", { action: "duplicateEpisode", projectId: p.id, id: e.id });
+  const copy = p.episodes[1];
+  assert.notEqual(copy.id, e.id);
+  assert.notEqual(copy.scripts[0].id, s.id);
+  assert.equal(copy.scripts[0].oscId, s.oscId);
+  assert.deepEqual(engine.data.selection, selection);
+  engine.edit("a", {
+    action: "createScript",
+    name: "Before",
+    beforeId: s.id,
+    background: true,
+  });
+  assert.equal(e.scripts[0].name, "Before");
+  assert.equal(e.scripts[1].id, s.id);
+});
+test("editing a preset leaves live settings and playback untouched until applied", () => {
+  const engine = new Engine();
+  engine.edit("a", { action: "savePreset", name: "Original" });
+  const preset = engine.data.displayPresets[0],
+    settings = { ...engine.data.settings };
+  engine.control("a", "play");
+  engine.edit("a", {
+    action: "updatePreset",
+    id: preset.id,
+    name: "Updated",
+    value: { fontSize: 90 },
+  });
+  assert.equal(preset.settings.fontSize, 90);
+  assert.equal(preset.name, "Updated");
+  assert.deepEqual(engine.data.settings, settings);
+  assert.equal(engine.data.transport.playing, true);
+});
+test("momentary holds belong to windows even when their client identity is shared", () => {
+  const engine = new Engine();
+  engine.control("same", "hold", null, "window1");
+  engine.control("same", "hold", null, "window2");
+  engine.control("same", "release", null, "window1");
+  assert.equal(engine.holds.size, 1);
+  assert.ok(engine.holds.has("window2"));
+});
+
+test("program import targets the chosen project with independent IDs and preset references", () => {
+  const engine = new Engine(),
+    source = structuredClone(engine.current().e),
+    selection = { ...engine.data.selection };
+  engine.edit("a", {
+    action: "createProject",
+    name: "Destination",
+    background: true,
+  });
+  const target = engine.data.projects.at(-1);
+  engine.edit("a", {
+    action: "importProgram",
+    projectId: target.id,
+    value: { schema: 1, kind: "program", program: source },
+  });
+  assert.equal(target.episodes.length, 1);
+  assert.notEqual(target.episodes[0].id, source.id);
+  assert.equal(target.episodes[0].scripts[0].oscId, source.scripts[0].oscId);
+  assert.deepEqual(engine.data.selection, selection);
+  const before = JSON.stringify(engine.data);
+  assert.throws(() =>
+    engine.edit("a", {
+      action: "importProgram",
+      projectId: target.id,
+      value: { schema: 1, kind: "program", program: { name: "Bad" } },
+    }),
+  );
+  assert.equal(JSON.stringify(engine.data), before);
+});
+test("renaming a screen retains its stable ID and orientation", () => {
+  const engine = new Engine();
+  engine.edit("a", {
+    action: "saveScreen",
+    id: "1",
+    name: "Kamera venstre",
+    mirror: true,
+  });
+  engine.edit("a", {
+    action: "saveScreen",
+    id: "1",
+    name: "Ny tittel",
+  });
+  assert.deepEqual(engine.data.screens[0], {
+    id: "1",
+    name: "Ny tittel",
+    mirror: true,
+    flip: false,
+  });
+  assert.equal(engine.data.screens.length, 1);
+});

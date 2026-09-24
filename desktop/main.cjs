@@ -23,6 +23,11 @@ else {
       localServer = await startServer({
         dataDir: process.env.BK_DATA_DIR || app.getPath("userData"),
       });
+      localServer.events.on("lifecycle", (action) => {
+        if (quitting) return;
+        if (action === "restart") app.relaunch();
+        app.quit();
+      });
       window = new BrowserWindow({
         width: config.startupSettings.width,
         height: config.startupSettings.height,

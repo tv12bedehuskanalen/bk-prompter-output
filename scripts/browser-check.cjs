@@ -88,7 +88,27 @@ const { initial } = require("../server/state.cjs");
       await peer.locator("#editor").innerText(),
       "Privat tekst i det andre vinduet",
     );
+    assert.equal(await editor.locator(".self-avatar").count(), 1);
+    await editor.locator("#clients-toggle").click();
+    assert.equal(
+      await editor.locator(".client-row").count(),
+      2,
+      "one grouped browser plus OSC",
+    );
+    await editor.locator("#client-name").fill("Regi");
+    await editor.locator("#client-name-form button").click();
+    await peer.waitForFunction(
+      () => document.querySelector(".self-avatar")?.title === "Regi",
+    );
+    await editor.locator(".client-row [data-lock]").first().click();
     await peer.close();
+    await editor.waitForTimeout(100);
+    assert.ok(
+      server.engine.data.lock,
+      "another window closing must retain client lock",
+    );
+    await editor.locator('[data-lock=""]').click();
+    await editor.locator("#clients-toggle").click();
     await editor
       .locator("#editor")
       .fill(
@@ -218,6 +238,15 @@ const { initial } = require("../server/state.cjs");
           .evaluate((el) => getComputedStyle(el).transform)
       ).includes("-1"),
     );
+    await settings.locator("#screen-name-edit").fill("Kamera hoved");
+    await settings.locator("#screen-name-edit").press("Tab");
+    await settings.waitForFunction(() =>
+      document
+        .querySelector("#screen-select")
+        .selectedOptions[0].textContent.includes("Kamera hoved"),
+    );
+    assert.equal(server.engine.data.screens[0].id, "1");
+    assert.equal(server.engine.data.screens[0].mirror, true);
     await settings.locator("#add-screen").click();
     await settings.locator("#screen-id").fill("2");
     await settings.locator("#screen-name").fill("Kamera 2");
@@ -252,6 +281,25 @@ const { initial } = require("../server/state.cjs");
     await settings.locator("#save-preset").click();
     await waitFor(() => server.engine.data.displayPresets.length === 1);
     const presetId = server.engine.data.displayPresets[0].id;
+    await setRange(settings, "#fontSize", 56);
+    await waitFor(() => server.engine.data.settings.fontSize === 56);
+    await settings.locator("[data-edit-preset]").first().click();
+    await setRange(settings, "#fontSize", 92);
+    await waitFor(
+      () => server.engine.data.displayPresets[0].settings.fontSize === 92,
+    );
+    assert.equal(
+      server.engine.data.settings.fontSize,
+      56,
+      "preset edits must not change live layout",
+    );
+    await setRange(settings, "#fontSize", 80);
+    await waitFor(
+      () => server.engine.data.displayPresets[0].settings.fontSize === 80,
+    );
+    await settings.locator("[data-apply-preset]").first().click();
+    await waitFor(() => server.engine.data.settings.fontSize === 80);
+    await settings.locator("#preset-edit-actions").waitFor({ state: "hidden" });
     await setRange(settings, "#fontSize", 56);
     await waitFor(() => server.engine.data.settings.fontSize === 56);
     const originalProgram = { ...server.engine.data.selection };
@@ -348,6 +396,10 @@ const { initial } = require("../server/state.cjs");
     await menu.locator("#menu-back").click();
     await menu.locator("#menu-create").click();
     await menu.locator("#new-name").fill("Helgesending");
+    await menu
+      .locator("#project-logo")
+      .setInputFiles(path.join(__dirname, "../public/branding/icon.png"));
+    await menu.locator("#logo-preview").waitFor({ state: "visible" });
     await menu.locator("#add-folder").click();
     await menu.locator("[data-folder-name]").fill("Sesong 1");
     await menu.locator("dialog button.primary").click();
@@ -360,7 +412,7 @@ const { initial } = require("../server/state.cjs");
       secondId,
       "project menu must not alter the live program while browsing",
     );
-    await menu.locator("#menu-create").click();
+    await menu.locator(".add-program-row").click();
     await menu.locator("#new-name").fill("Søndag");
     await menu.locator("#program-date").fill("2026-10-11");
     await menu.locator("#program-folder").selectOption({ label: "Sesong 1" });
@@ -372,16 +424,38 @@ const { initial } = require("../server/state.cjs");
       path: path.join(__dirname, "../docs/screenshots/program-menu.png"),
       fullPage: true,
     });
-    await menu.locator("[data-program]").click();
+    await menu.locator("[data-duplicate-program]").first().click();
+    await menu.locator("#copy-name").fill("Søndag kopi");
+    await menu.locator("dialog button.primary").click();
+    await menu.waitForFunction(
+      () => document.querySelectorAll("[data-program]").length === 2,
+    );
+    await menu.locator("[data-program]").first().click();
     await menu.waitForURL("**/?editor");
     await waitFor(() => server.engine.current().e.name === "Søndag");
     await menu.goto("http://localhost:17990/projects");
+    assert.equal(await menu.locator("#menu-logo").isVisible(), true);
+    assert.equal(
+      await menu.locator(".program-row.loaded .program-live").innerText(),
+      "● LIVE",
+    );
+    await menu.screenshot({
+      path: path.join(__dirname, "../docs/screenshots/program-menu.png"),
+      fullPage: true,
+    });
     await menu.locator("#menu-back").click();
     await menu.locator(`[data-project="${originalProgram.project}"]`).click();
     await menu.locator(`[data-program="${originalProgram.episode}"]`).click();
     await menu.waitForURL("**/?editor");
     await waitFor(
       () => server.engine.current().e.id === originalProgram.episode,
+    );
+    await editor.locator(".insert-slot button").nth(1).focus();
+    await editor.locator(".insert-slot button").nth(1).click();
+    await editor.locator("#new-name").fill("Inn mellom");
+    await editor.locator("dialog button.primary").click();
+    await waitFor(
+      () => server.engine.current().e.scripts[1]?.name === "Inn mellom",
     );
     await editor.locator(".script-open").first().click();
     await editor.locator(".load-script").first().click();
@@ -416,6 +490,62 @@ const { initial } = require("../server/state.cjs");
     });
     await settings.screenshot({
       path: path.join(__dirname, "../docs/screenshots/display.png"),
+      fullPage: true,
+    });
+    const previewFont = await settings
+      .locator(".prompt-content p")
+      .first()
+      .evaluate((el) => getComputedStyle(el).fontSize);
+    const outputFont = await output
+      .locator(".prompt-content p")
+      .first()
+      .evaluate((el) => getComputedStyle(el).fontSize);
+    assert.equal(
+      previewFont,
+      outputFont,
+      "preview must render the same text metrics as output",
+    );
+    const system = await context.newPage();
+    await system.goto("http://localhost:17990/settings");
+    await system.locator('[data-settings-view="transfer"]').click();
+    assert.equal(
+      await system.locator('[data-settings-panel="osc"]').isVisible(),
+      false,
+    );
+    const exportedProject = await context.request.get(
+      "http://localhost:17990" +
+        (await system.locator("#export-project-link").getAttribute("href")),
+    );
+    assert.equal((await exportedProject.json()).projects.length, 1);
+    const exportedProgram = await context.request.get(
+      "http://localhost:17990" +
+        (await system.locator("#export-program-link").getAttribute("href")),
+    );
+    const programFile = await exportedProgram.json();
+    assert.equal(programFile.kind, "program");
+    const targetProject = server.engine.data.projects.find(
+      (p) => p.name === "Helgesending",
+    );
+    const countBefore = targetProject.episodes.length;
+    await system
+      .locator("#program-import-project")
+      .selectOption(targetProject.id);
+    await system.locator("#program-import-file").setInputFiles({
+      name: "program.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(programFile)),
+    });
+    await waitFor(() => targetProject.episodes.length === countBefore + 1);
+    await system.locator('[data-settings-view="power"]').click();
+    await system.locator('[data-lifecycle="shutdown"]').click();
+    await system.locator("dialog [data-cancel]").click();
+    assert.equal(
+      (await context.request.get("http://localhost:17990/api/status")).ok(),
+      true,
+    );
+    await system.locator('[data-settings-view="transfer"]').click();
+    await system.screenshot({
+      path: path.join(__dirname, "../docs/screenshots/settings.png"),
       fullPage: true,
     });
     const iconPage = await context.newPage();

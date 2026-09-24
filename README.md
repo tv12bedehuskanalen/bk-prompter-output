@@ -1,6 +1,6 @@
 # BK Prompter
 
-An offline-first, Norwegian teleprompter for Bedehuskanalen. Version **0.3.0** adds immediate metadata saving, chapter tools, project folders and separate output screens.
+An offline-first, Norwegian teleprompter for Bedehuskanalen. Version **0.4.0** refines project navigation, preset editing and shared browser identity.
 
 ## Run
 
@@ -36,7 +36,7 @@ Projects contain programs/episodes, which contain ordered scripts. Project chang
 
 Use the project menu to choose a project, then open a program. Browsing or creating projects/programs in the menu does not interrupt the loaded program. Opening a different program switches the shared context for all views. The editor has collapsible live controls on the left, colored script blocks in the middle, and script editing on the right.
 
-Click a block to edit it without loading it. Each block's **Last inn** button loads that script on all outputs, paused at the beginning. The same operation is available through OSC. The presenter can then start and adjust speed from the phone controller. Editing an off-air script does not alter the live script or its playback position.
+Click a block to edit it without loading it. Slim insertion lines appear above/between/below blocks near the pointer; their **+** inserts a script at that position without shifting the list. Each block's **Last inn** button loads that script on all outputs, paused at the beginning. The same operation is available through OSC. The presenter can then start and adjust speed from the phone controller. Editing an off-air script does not alter the live script or its playback position.
 
 
 Titles, OSC IDs, block colors and script loading settings save immediately and update other clients. Only text/formatting/chapter changes await **Oppdater manus**.
@@ -57,15 +57,21 @@ Under **Prompter ved innlasting** in each script's editor, choose:
 
 The choice saves automatically with the script. These choices apply when the script is loaded by its button, OSC, next/previous navigation, or when opening a different program. Updating a script while it is live does not automatically reapply its loading settings or reset playback.
 
-Create presets on the **Prompteroppsett** page by naming and saving the current display settings. Presets persist locally and are included in project export/import. Imported references receive new IDs so they do not overwrite existing presets. Presets referenced by scripts cannot be deleted until those scripts use a different setting choice.
+The **Prompteroppsett** sidebar selects an output screen at the top; mirror/flip controls apply only to that screen. **Gjeldende leseflate** edits the shared live layout. Click a preset name to apply it immediately to the current prompter layout. The pencil beside a preset opens that preset in the same editor, with a readable preview. These edits save to the preset immediately, without changing live output. **Bruk på prompteren** explicitly applies it. Create a new preset by entering a name and pressing **+**; it copies the currently edited layout. Presets persist locally and are included in project export/import. Imported references receive new IDs so they do not overwrite existing presets. Presets referenced by scripts cannot be deleted until those scripts use a different setting choice.
 
 ## Projects, programs and screens
 
 The project menu opens inside the currently loaded project. Use **Alle prosjekter** to return to project tiles. The pencil on a project tile opens its name, color, local logo upload and folders (for example seasons); these fields are also available when creating a project. Removing a folder moves its programs to **Uten mappe** without deleting them.
 
-Programs appear in a list with optional program date and automatic last-modified time. Click the column headings to sort; click again to reverse direction. A folder filter narrows the list. The pencil on a program edits its name, date and folder. Browsing does not load a program; opening a program switches the shared context. The loaded project/program appears in the top-right of all control/settings GUIs. The clean output keeps its canvas clear and identifies the context in its browser title.
+Programs appear in a list with optional program date and automatic last-modified time. Click the column headings to sort; click again to reverse direction. The folder sidebar narrows the list. The project logo appears above the project title, and the loaded program has a red border and LIVE badge. **Nytt program** sits inside the list. The duplicate button creates a separate program with new internal IDs, retaining scripts, OSC IDs, date, folder and preset choices without loading the copy. The pencil on a program edits its name, date and folder. Browsing does not load a program; opening a program switches the shared context. The loaded project/program appears in the top-right of all control/settings GUIs. The clean output keeps its canvas clear and identifies the context in its browser title.
 
-In **Prompteroppsett → Utgangsskjermer**, create additional named screens with unique IDs. Default screen **1** is available at `/output` or `/output?screen=1`. Other screens use `/output?screen=ID`. Each screen has independent horizontal mirroring and vertical flipping. All previews remain readable, while outputs share the same content, typography, position and speed. Screen orientation is local equipment configuration and is not changed by script presets. Existing global orientation migrates to screen 1 on upgrade.
+In **Prompteroppsett → Utgangsskjermer**, create additional named screens with unique IDs. Default screen **1** is available at `/output` or `/output?screen=1`. Other screens use `/output?screen=ID`. Each screen has an editable display name with a permanent ID and URL. Renaming does not change orientation or break screen links. Each screen has independent horizontal mirroring and vertical flipping. All previews remain readable, while outputs share the same content, typography, position and speed. Screen orientation is local equipment configuration and is not changed by script presets. Existing global orientation migrates to screen 1 on upgrade.
+
+## System settings
+
+The Settings sidebar has separate OSC, Import/export, Network and Server sections. OSC command documentation is expandable inside the OSC view. Export a single project or program from the transfer view. A program import requires selecting a destination project and creates fresh program/script IDs while retaining OSC IDs and preset references. Project imports create separate projects. Neither import interrupts the current program.
+
+**Start serveren på nytt** and **Avslutt serveren** require an in-app confirmation. These actions affect the BK Prompter server/app, not the host operating system. Data is saved before exit. Restart reconnects browsers and leaves playback paused. The desktop launcher and headless/development server support these actions.
 
 ## Live playback
 
@@ -73,7 +79,9 @@ The local server owns playback time, speed, position, selected script, settings 
 
 Browser/network scheduling means mathematical zero-delay frame lock is not possible. Normal LAN clients follow the same timeline; the automated browser test measures observed drift. Hardware and loaded-network testing remain necessary before broadcast use.
 
-The latest accepted control wins. Use the top-bar client list to give one browser (or OSC) exclusive control. Its owner or the person who assigned the lock can release it. Disconnecting the owner/assigner releases the lock. Momentary hold pauses while held, resumes on release, and has a safety lease so a disconnected controller cannot leave the show stuck. A disconnected output freezes, indicates disconnection, then rejoins on reconnect.
+Browser identity is retained locally across tabs, windows and reconnects on the same server address and browser profile. Your avatar appears at the far right marked **DEG**, with other clients grouped to its left. Click the avatars to rename your client and manage control. The list shows each client once, with its window count and open views. Names update across the client's windows. Different browsers, private profiles, devices, or server addresses can appear as separate clients; there is no device fingerprinting.
+
+The latest accepted control wins. Use the top-bar client list to give one browser (or OSC) exclusive control. Its owner or the person who assigned the lock can release it. Closing one window preserves that client’s lock while other windows remain connected. Disconnecting the owner/assigner’s last window releases the lock. Momentary holds belong to individual windows, so releasing or closing one does not clear a hold in another. Momentary hold pauses while held, resumes on release, and has a safety lease so a disconnected controller cannot leave the show stuck. A disconnected output freezes, indicates disconnection, then rejoins on reconnect.
 
 Space starts/pauses, arrow keys change speed, Home resets. On the clean output, the mouse wheel scrubs the shared position. Double-click enters fullscreen. Output has no toolbar; the optional reading guide can be disabled in display settings.
 

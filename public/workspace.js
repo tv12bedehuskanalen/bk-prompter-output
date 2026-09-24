@@ -105,19 +105,6 @@ function outputScreen() {
     new URLSearchParams(location.search).get("screen") || DEFAULT_SCREEN_ID;
   return state.screens?.find((x) => x.id === id);
 }
-function renderScreens() {
-  const list = $("#screen-list");
-  if (!list) return;
-  const key = JSON.stringify(state.screens);
-  if (key === screensKey) return;
-  screensKey = key;
-  list.innerHTML = (state.screens || [])
-    .map(
-      (s) =>
-        `<div class="screen-row"><div><strong>${esc(s.name)}</strong><small>ID ${esc(s.id)}</small><a target="_blank" href="/output?screen=${encodeURIComponent(s.id)}">Åpne skjerm ↗</a><code>${esc(location.origin)}/output?screen=${esc(s.id)}</code></div><label><input type="checkbox" data-screen="${esc(s.id)}" data-axis="mirror" ${s.mirror ? "checked" : ""}> Speil horisontalt</label><label><input type="checkbox" data-screen="${esc(s.id)}" data-axis="flip" ${s.flip ? "checked" : ""}> Vend vertikalt</label>${s.id !== "1" ? `<button class="flat trash" data-delete-screen="${esc(s.id)}" aria-label="Slett skjerm ${esc(s.name)}">${trashIcon()}</button>` : ""}</div>`,
-    )
-    .join("");
-}
 function organizationDialog(kind, id) {
   const isProject = kind === "Project",
     project = isProject
@@ -230,18 +217,13 @@ function renderMenu() {
   if (key === menuKey) return;
   menuKey = key;
   $("#menu-title").textContent = project?.name || "Dine prosjekter";
-  $("#menu-description").textContent = project
-    ? "Velg programmet som skal være innlastet på alle skjermer."
-    : "Velg prosjekt, deretter program.";
+  const logo = $("#menu-logo");
+  logo.hidden = !project?.logo;
+  if (project?.logo) logo.src = project.logo;
   $("#menu-back").hidden = !project;
-  $("#menu-create").dataset.create = project ? "Episode" : "Project";
-  $("#menu-create").textContent = project
-    ? "+ Nytt program"
-    : "+ Nytt prosjekt";
-  $("#loaded-program").textContent = e
-    ? `Innlastet: ${p.name} / ${e.name}`
-    : "Ingen program innlastet.";
-  $("#resume-program").hidden = !e;
+  $("#menu-create").hidden = !!project;
+  $("#menu-create").dataset.create = "Project";
+  $("#menu-create").textContent = "+ Nytt prosjekt";
   const grid = $(".project-grid");
   grid.classList.toggle("program-list", !!project);
   if (!project) {
@@ -276,7 +258,7 @@ function renderMenu() {
             ? -1
             : av.localeCompare(bv, "nb") * programDirection;
     });
-  grid.innerHTML = `<div class="program-list-tools"><label>Mappe <select id="folder-filter"><option value="">Alle programmer</option><option value="none" ${folderFilter === "none" ? "selected" : ""}>Uten mappe</option>${project.folders.map((f) => `<option value="${f.id}" ${folderFilter === f.id ? "selected" : ""}>${esc(f.name)}</option>`).join("")}</select></label><button class="flat" data-edit-project="${project.id}">${penIcon()} Prosjektinnstillinger</button></div><div class="program-table"><div class="program-row program-table-head">${[
+  grid.innerHTML = `<aside class="folder-sidebar"><span class="eyebrow">Mapper</span>${[{ id: "", name: "Alle programmer" }, { id: "none", name: "Uten mappe" }, ...project.folders].map((f) => `<button data-folder-filter="${esc(f.id)}" class="${folderFilter === f.id ? "active" : ""}">▱ ${esc(f.name)}</button>`).join("")}<button data-edit-project="${project.id}">${penIcon()} Prosjektinnstillinger</button></aside><div class="program-table"><div class="program-row program-table-head">${[
     ["name", "Program"],
     ["date", "Programdato"],
     ["updatedAt", "Sist endret"],
@@ -287,12 +269,7 @@ function renderMenu() {
     )
     .join(
       "",
-    )}<span></span></div>${programs.map((item) => `<div class="program-row ${item.id === e?.id ? "loaded" : ""}"><button class="program-open" data-program="${item.id}"><strong>${esc(item.name)}</strong><small>${item.scripts.length} manus · ${esc(project.folders.find((f) => f.id === item.folderId)?.name || "Uten mappe")}${item.id === e?.id ? " · INNLASTET" : ""}</small></button><span>${item.date ? esc(new Date(item.date + "T12:00:00").toLocaleDateString("nb-NO")) : "—"}</span><span>${item.updatedAt ? esc(new Date(item.updatedAt).toLocaleString("nb-NO", { dateStyle: "short", timeStyle: "short" })) : "—"}</span><button class="flat" data-edit-program="${item.id}" aria-label="Rediger program ${esc(item.name)}">${penIcon()}</button></div>`).join("") || '<p class="empty">Ingen programmer i denne mappen.</p>'}</div>`;
-  $("#folder-filter").onchange = (e) => {
-    folderFilter = e.target.value;
-    menuKey = "";
-    renderMenu();
-  };
+    )}<span></span><span></span></div>${programs.map((item) => `<div class="program-row ${item.id === e?.id ? "loaded" : ""}"><button class="program-open" data-program="${item.id}"><strong>${esc(item.name)}</strong><small>${item.scripts.length} manus · ${esc(project.folders.find((f) => f.id === item.folderId)?.name || "Uten mappe")}</small></button><span>${item.date ? esc(new Date(item.date + "T12:00:00").toLocaleDateString("nb-NO")) : "—"}</span><span>${item.updatedAt ? esc(new Date(item.updatedAt).toLocaleString("nb-NO", { dateStyle: "short", timeStyle: "short" })) : "—"}</span><div class="program-actions"><button class="flat" data-duplicate-program="${item.id}" aria-label="Dupliser ${esc(item.name)}" title="Dupliser program">⧉</button><button class="flat" data-edit-program="${item.id}" aria-label="Rediger program ${esc(item.name)}">${penIcon()}</button></div><span class="program-live">${item.id === e?.id ? "● LIVE" : ""}</span></div>`).join("")}<button class="add-program-row" data-create="Episode">+ Nytt program</button></div>`;
 }
 function syncSelectionColors(sel) {
   let node =
@@ -338,6 +315,57 @@ function renderEditorChapters() {
     .join("");
 }
 function bindWorkspace() {
+  const scriptList = $(".script-list");
+  scriptList?.addEventListener("pointermove", (event) => {
+    const slots = $$(".insert-slot", scriptList);
+    let closest = null,
+      distance = 24;
+    for (const slot of slots) {
+      const rect = slot.getBoundingClientRect();
+      const d = Math.abs(event.clientY - (rect.top + rect.height / 2));
+      if (d < distance) {
+        closest = slot;
+        distance = d;
+      }
+    }
+    for (const slot of slots)
+      slot.classList.toggle("hovered", slot === closest);
+  });
+  scriptList?.addEventListener("pointerleave", () =>
+    $$(".insert-slot.hovered", scriptList).forEach((el) =>
+      el.classList.remove("hovered"),
+    ),
+  );
+
+  document.addEventListener("submit", (event) => {
+    if (event.target.id !== "client-name-form") return;
+    event.preventDefault();
+    const name = $("#client-name").value.trim() || "Klient";
+    localStorage.setItem("bk-name", name);
+    send({ type: "hello", identity: browserIdentity, name, role: route });
+  });
+  window.addEventListener("storage", (event) => {
+    if (event.key === "bk-name" && connected)
+      send({
+        type: "hello",
+        identity: browserIdentity,
+        name: event.newValue,
+        role: route,
+      });
+  });
+  $("#screen-select")?.addEventListener("change", (event) => {
+    selectedScreenId = event.target.value;
+    renderDisplayWorkspace();
+  });
+  $("#preset-edit-name")?.addEventListener("change", (event) =>
+    request({
+      type: "edit",
+      action: "updatePreset",
+      id: displayPresetId,
+      name: event.target.value,
+    }).catch((e) => toast(e.message)),
+  );
+
   $("#clear-text")?.addEventListener("click", () => {
     const id = editorId;
     confirmGUI(
@@ -396,12 +424,21 @@ function bindWorkspace() {
   );
   document.addEventListener("change", (e) => {
     const el = e.target;
+    if (el.dataset.screenName) {
+      const screen = state.screens.find((s) => s.id === el.dataset.screenName);
+      request({
+        type: "edit",
+        action: "saveScreen",
+        id: screen.id,
+        name: el.value,
+      }).catch((e) => toast(e.message));
+    }
     if (el.dataset.screen) {
       const screen = state.screens.find((s) => s.id === el.dataset.screen);
       request({
         type: "edit",
         action: "saveScreen",
-        ...screen,
+        id: screen.id,
         [el.dataset.axis]: el.checked,
       }).catch((e) => toast(e.message));
     }
@@ -409,6 +446,53 @@ function bindWorkspace() {
   document.addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b) return;
+    if (b.dataset.folderFilter !== undefined) {
+      folderFilter = b.dataset.folderFilter;
+      menuKey = "";
+      renderMenu();
+    }
+    if (b.dataset.duplicateProgram) {
+      const source = state.projects
+        .find((p) => p.id === menuProjectId)
+        ?.episodes.find((e) => e.id === b.dataset.duplicateProgram);
+      dialogForm(
+        "Dupliser program",
+        `<label for="copy-name">Navn på kopien</label><input id="copy-name" required value="${esc(source.name + " (kopi)")}">`,
+        (d) =>
+          request({
+            type: "edit",
+            action: "duplicateEpisode",
+            projectId: menuProjectId,
+            id: source.id,
+            name: $("#copy-name", d).value,
+          }),
+        "Dupliser",
+      );
+    }
+    if (b.dataset.insertBefore !== undefined)
+      nameDialog("Script", b.dataset.insertBefore);
+    if (b.dataset.applyPreset)
+      request({
+        type: "edit",
+        action: "applyPreset",
+        id: b.dataset.applyPreset,
+      })
+        .then(() => {
+          displayPresetId = null;
+          layoutKey = "";
+          render();
+        })
+        .catch((e) => toast(e.message));
+    if (b.dataset.editPreset) {
+      displayPresetId = b.dataset.editPreset;
+      layoutKey = "";
+      render();
+    }
+    if (b.id === "edit-live-layout") {
+      displayPresetId = null;
+      layoutKey = "";
+      render();
+    }
     if (b.dataset.editProject)
       organizationDialog("Project", b.dataset.editProject);
     if (b.dataset.editProgram)

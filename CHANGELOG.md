@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+- Project program lists now show the project logo, folder sidebar, clear back button, in-list creation, duplication and a red LIVE row. Removed redundant headings and status copy.
+- Script blocks have softer red live borders, clearer load icons, no empty OSC labels and slim insertion controls between blocks. The live pane has one centered indicator.
+- Rebuilt Prompteroppsett with a screen/preset sidebar and one editor for either live layout or a saved preset. Clicking a preset name applies it immediately; its pencil opens the editor. Preset edits and preview remain separate from live output until explicitly applied. Corrected preview paragraph typography.
+- Browser windows sharing local identity appear as one client. Your avatar is separated on the right; renaming moved from system settings into the avatar panel. Control locks span windows, with separate momentary hold leases per window.
+- Added a Settings sidebar for OSC, separate project/program import and export, network and confirmed server restart/shutdown. Program imports select a destination project.
+- Screen names are editable independently of permanent IDs and URLs. Removed promotional copy and separated text and reading-point controls.
+- Identity persists within the same browser profile and server origin. Existing projects, settings, presets and script content are retained.
+
 ## 0.3.0
 
 - Script title, OSC ID, block color and loading policy now save immediately. Only text, formatting and chapters wait for **Oppdater manus**; text publication preserves live playback and concurrent metadata changes.

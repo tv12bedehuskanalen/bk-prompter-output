@@ -115,7 +115,7 @@ function initial() {
                 name: "Velkommen",
                 oscId: "intro",
                 version: 1,
-                html: "<h1>Velkommen til sending</h1><p>Dette er BK Prompter. Et rolig sted for ordene dine.</p><p>Åpne kontrollen på mobilen, eller trykk på start for å sette teksten i bevegelse.</p><h2>Alt i samme takt</h2><p>Alle skjermer følger samme manus, samme posisjon og samme hastighet. Du kan redigere teksten, markere viktige ord og legge til overskrifter underveis.</p><p>Ta et pust. Se i kameraet. Du er klar.</p>",
+                html: "<h1>Velkommen til sending</h1><p>Dette er et eksempelmanus. Erstatt teksten i editoren.</p><p>Åpne kontrollen på mobilen, eller trykk på start for å sette teksten i bevegelse.</p><h2>Kapittel 2</h2><p>Alle skjermer følger samme manus, samme posisjon og samme hastighet. Du kan redigere teksten, markere viktige ord og legge til overskrifter underveis.</p><p>Slutt på eksempelmanuset.</p>",
               },
             ],
           },
@@ -202,7 +202,7 @@ class Engine {
   allowed(client) {
     return !this.data.lock || this.data.lock.owner === client;
   }
-  control(client, action, value) {
+  control(client, action, value, holdKey = client) {
     if (!this.allowed(client) && action !== "release")
       throw Error("Kontrollen er låst til en annen klient.");
     this.anchor();
@@ -231,10 +231,10 @@ class Engine {
         t.playing = false;
         break;
       case "hold":
-        this.holds.set(client, this.now());
+        this.holds.set(holdKey, this.now());
         break;
       case "release":
-        this.holds.delete(client);
+        this.holds.delete(holdKey);
         break;
       case "next":
       case "previous": {
@@ -371,9 +371,52 @@ class Engine {
           version: 1,
           html: clean(msg.html || "<p>Skriv manuset ditt her …</p>"),
         };
-        e.scripts.push(s);
+        const before = msg.beforeId
+          ? e.scripts.findIndex((x) => x.id === msg.beforeId)
+          : e.scripts.length;
+        if (before < 0) throw Error("Innsettingspunktet finnes ikke lenger.");
+        e.scripts.splice(before, 0, s);
         if (!msg.background) this.load(s.id);
         break;
+      case "duplicateEpisode": {
+        const project = this.data.projects.find((x) => x.id === msg.projectId);
+        const original = project?.episodes.find((x) => x.id === msg.id);
+        if (!original) throw Error("Ukjent program.");
+        const copy = structuredClone(original);
+        copy.id = uid();
+        copy.name = name || (original.name + " (kopi)").slice(0, 120);
+        copy.updatedAt = new Date().toISOString();
+        copy.scripts = copy.scripts.map((script) => ({
+          ...script,
+          id: uid(),
+          version: 1,
+        }));
+        project.episodes.splice(
+          project.episodes.indexOf(original) + 1,
+          0,
+          copy,
+        );
+        break;
+      }
+      case "updatePreset": {
+        const preset = this.data.displayPresets.find((x) => x.id === msg.id);
+        if (!preset) throw Error("Ukjent forhåndsinnstilling.");
+        const settings = displaySettings(msg.value || {}, preset.settings);
+        if ("name" in msg) {
+          if (
+            !name ||
+            this.data.displayPresets.some(
+              (x) =>
+                x.id !== preset.id &&
+                x.name.toLowerCase() === name.toLowerCase(),
+            )
+          )
+            throw Error("Skriv et unikt navn.");
+          preset.name = name;
+        }
+        preset.settings = settings;
+        break;
+      }
       case "updateProject": {
         p = this.data.projects.find((x) => x.id === msg.id);
         if (!p || !name) throw Error("Velg prosjekt og skriv et navn.");
@@ -398,13 +441,17 @@ class Engine {
       }
       case "saveScreen": {
         const id = String(msg.id || "");
-        if (!/^[A-Za-z0-9_-]{1,32}$/.test(id) || !name)
-          throw Error(
-            "Skriv navn og skjerm-ID (bokstaver, tall eller bindestrek).",
-          );
         const screen = this.data.screens.find((x) => x.id === id);
+        const screenName = msg.name === undefined ? screen?.name : name;
+        if (!/^[A-Za-z0-9_-]{1,32}$/.test(id) || !screenName)
+          throw Error("Skriv navn og gyldig skjerm-ID.");
         if (msg.create && screen) throw Error("Skjerm-ID finnes allerede.");
-        const value = { id, name, mirror: !!msg.mirror, flip: !!msg.flip };
+        const value = {
+          id,
+          name: screenName,
+          mirror: "mirror" in msg ? !!msg.mirror : !!screen?.mirror,
+          flip: "flip" in msg ? !!msg.flip : !!screen?.flip,
+        };
         if (screen) Object.assign(screen, value);
         else this.data.screens.push(value);
         break;
@@ -541,6 +588,34 @@ class Engine {
         this.data.displayPresets = this.data.displayPresets.filter(
           (x) => x.id !== msg.id,
         );
+        break;
+      }
+      case "importProgram": {
+        const project = this.data.projects.find((x) => x.id === msg.projectId);
+        if (!project) throw Error("Velg et målprosjekt.");
+        if (
+          msg.value?.schema !== 1 ||
+          msg.value?.kind !== "program" ||
+          !msg.value.program
+        )
+          throw Error("Velg en eksportert programfil.");
+        const staging = new Engine();
+        staging.edit("import", {
+          action: "importProjects",
+          value: {
+            schema: 1,
+            displayPresets: msg.value.displayPresets || [],
+            projects: [
+              {
+                name: "Import",
+                episodes: [{ ...msg.value.program, folderId: null }],
+              },
+            ],
+          },
+        });
+        const imported = staging.data.projects.at(-1).episodes[0];
+        project.episodes.push(imported);
+        this.data.displayPresets.push(...staging.data.displayPresets);
         break;
       }
       case "importProjects": {
