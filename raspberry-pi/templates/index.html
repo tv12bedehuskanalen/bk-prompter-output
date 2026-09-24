@@ -59,8 +59,10 @@
       .hero-copy { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
       .hostname { color: #82979a; font-size: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; }
       .title-edit { display: flex; align-items: center; gap: 10px; }
-      .title-input { margin: 0; border: 0; padding: 0; background: transparent; font-size: clamp(27px, 5vw, 38px); font-weight: 800; letter-spacing: -1.2px; }
+      .title-input { margin: 0; border: 0; padding: 0; background: transparent; font-size: 20px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; }
+      .title-display { margin: 0; border: 0; padding: 0; background: transparent; color: var(--accent); font-size: 20px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; cursor: text; }
       .title-save { min-height: 30px; padding: 5px 9px; font-size: 11px; }
+      .title-form[hidden] { display: none; }
       .lead { margin: 0 0 30px; color: var(--muted); line-height: 1.55; }
       .card { margin-top: 30px;overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 20px 45px #0004; }
       .card-section { padding: clamp(20px, 4vw, 30px); }
@@ -102,7 +104,7 @@
   </head>
   <body>
     <main>
-      <div class="hero"><img class="hero-logo" src="/branding/symbol.svg" alt="Bedehuskanalen" /><div class="hero-copy"><div class="hostname">{{ full_hostname }}</div><form class="title-edit" method="post"><input class="eyebrow title-input" name="title" value="{{ page_title }}" aria-label="Tittel" /><button class="title-save" type="submit" name="save_title" value="true">Lagre</button></form><h1>Prompter Output</h1></div></div>
+      <div class="hero"><img class="hero-logo" src="/branding/symbol.svg" alt="Bedehuskanalen" /><div class="hero-copy"><div class="hostname">{{ full_hostname }}</div><button class="title-display" id="titleDisplay" type="button">{{ page_title }}</button><form class="title-edit title-form" id="titleForm" method="post" hidden><input class="title-input" id="titleInput" name="title" value="{{ page_title }}" aria-label="Tittel" /><button class="title-save" type="submit" name="save_title" value="true">Lagre</button></form><h1>Prompter Output</h1></div></div>
       <section class="card">
         <div class="card-section preview-section">
           <div class="preview-heading"><h2>Preview</h2><span>LIVE: {{ current_url }}</span></div>
@@ -135,7 +137,11 @@
       const previewEmpty = document.getElementById("previewEmpty");
       const softwareStatus = document.getElementById("softwareStatus");
       const updateProgress = document.getElementById("updateProgress");
+      const titleDisplay = document.getElementById("titleDisplay");
+      const titleForm = document.getElementById("titleForm");
+      const titleInput = document.getElementById("titleInput");
       let previewTimer;
+      titleDisplay.addEventListener("click", () => { titleDisplay.hidden = true; titleForm.hidden = false; titleInput.focus(); titleInput.select(); });
       function updatePreview() {
         const value = input.value.trim();
         try {
