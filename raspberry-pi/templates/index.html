@@ -117,7 +117,7 @@
             <button class="danger" type="button" data-action="reboot">Restart Pi</button>
           </div>
           <p id="message" role="status" aria-live="polite">{{ update_status }}</p>
-          <div class="software"><span id="softwareStatus">{{ update_available and ('Ny versjon ' ~ update_available ~ ' tilgjengelig') or ('Programvare ' ~ version ~ ' er oppdatert') }}</span><button type="button" data-action="software-update">Oppdater</button></div>
+          <div class="software"><span id="softwareStatus">{{ 'Programvare ' ~ version ~ (' · Ny versjon ' ~ update_available ~ ' tilgjengelig' if update_available else ' er oppdatert') }}</span><button type="button" data-action="software-update">Oppdater</button></div>
           <div class="progress" id="updateProgress" aria-hidden="true"></div>
         </div>
       </section>
@@ -214,8 +214,8 @@
       resetToOutput();
       fitPreview();
       fetch("/update-check", { cache: "no-store" }).then(r => r.json()).then(data => {
-        if (data.available) softwareStatus.textContent = `Ny versjon ${data.available} tilgjengelig`;
-        else if (data.status && data.status.startsWith("Updated from")) softwareStatus.textContent = `Programvare ${data.version} er oppdatert`;
+        if (data.available) softwareStatus.textContent = `Programvare ${data.version} · Ny versjon ${data.available} tilgjengelig`;
+        else softwareStatus.textContent = `Programvare ${data.version} er oppdatert`;
       }).catch(() => {});
     </script>
   </body>
