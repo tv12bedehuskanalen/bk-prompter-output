@@ -1,6 +1,6 @@
 {
   "name": "bk-prompter",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Synkronisert teleprompter for redaksjon og studio",
   "main": "desktop/main.cjs",
   "private": true,
@@ -10,14 +10,15 @@
     "test": "node --test test/*.test.cjs",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
-    "check": "node --check server/index.cjs && node --check public/app.js && node --check desktop/main.cjs",
+    "check": "node --check server/index.cjs && node --check public/app.js && node --check public/workspace.js && node --check desktop/main.cjs",
     "test:browser": "node scripts/browser-check.cjs",
     "format": "prettier --write public/*.{js,css,html} config/*.cjs server/*.cjs desktop/*.{cjs,js,html} test/*.cjs scripts/*.cjs",
     "preversion": "npm run check && npm test",
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
     "version:major": "npm version major",
-    "test:desktop": "node scripts/desktop-check.cjs"
+    "test:desktop": "node scripts/desktop-check.cjs",
+    "dev": "node scripts/dev.cjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

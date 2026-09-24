@@ -25,6 +25,7 @@ Application files are separate from data. Keep `appId`, `storageName`, and the i
 
 - macOS app data: `~/Library/Application Support/BK Prompter/studio.json`
 - Windows app data: `%APPDATA%/BK Prompter/studio.json`
+- `npm run dev` and development launchers use the same data location as the desktop app.
 - Headless Node server data: `~/.bk-prompter/studio.json` (override with `BK_DATA_DIR`)
 
 On the first start of a different version, the app validates the data, creates an exact backup in the adjacent `backups` directory, then applies supported schema migrations. Writes use a temporary file, a disk flush, and an atomic rename. An unreadable file or a future schema stops startup rather than overwriting it.

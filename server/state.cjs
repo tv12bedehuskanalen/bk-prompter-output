@@ -1,3 +1,4 @@
+const { projectFields, episodeFields } = require("./organization.cjs");
 const config = require("../config/app.cjs");
 const { randomUUID } = require("node:crypto");
 const sanitize = require("sanitize-html");
@@ -23,7 +24,7 @@ const clean = (html) =>
       "li",
       "blockquote",
     ],
-    allowedAttributes: { "*": ["style"] },
+    allowedAttributes: { "*": ["style"], h2: ["style", "data-chapter"] },
     allowedStyles: {
       "*": {
         color: [/^#[0-9a-f]{3,8}$/i, /^rgb\([\d\s,]+\)$/, /^[a-z]+$/i],
@@ -137,6 +138,24 @@ class Engine {
   constructor(data = initial(), now = () => performance.now()) {
     this.data = data;
     this.data.displayPresets ??= [];
+    this.data.screens ??= [
+      {
+        id: "1",
+        name: "Skjerm 1",
+        mirror: !!data.settings.mirror,
+        flip: !!data.settings.flip,
+      },
+    ];
+    for (const p of data.projects) {
+      p.folders ??= [];
+      p.color ??= "#32c6cb";
+      p.logo ??= "";
+      for (const e of p.episodes) {
+        e.date ??= "";
+        e.folderId ??= null;
+        e.updatedAt ??= null;
+      }
+    }
     this.now = now;
     this.holds = new Map();
     this.layout = null;
@@ -324,7 +343,7 @@ class Engine {
         break;
       case "createProject":
         if (!name) throw Error("Skriv et navn.");
-        p = { id: uid(), name, episodes: [] };
+        p = { id: uid(), name, ...projectFields(msg), episodes: [] };
         this.data.projects.push(p);
         if (!msg.background) {
           this.data.selection = { project: p.id, episode: null, script: null };
@@ -335,7 +354,7 @@ class Engine {
         if (msg.projectId)
           p = this.data.projects.find((x) => x.id === msg.projectId);
         if (!p || !name) throw Error("Velg prosjekt og skriv et navn.");
-        e = { id: uid(), name, scripts: [] };
+        e = { id: uid(), name, ...episodeFields(msg, p), scripts: [] };
         p.episodes.push(e);
         if (!msg.background) {
           this.data.selection.project = p.id;
@@ -355,6 +374,97 @@ class Engine {
         e.scripts.push(s);
         if (!msg.background) this.load(s.id);
         break;
+      case "updateProject": {
+        p = this.data.projects.find((x) => x.id === msg.id);
+        if (!p || !name) throw Error("Velg prosjekt og skriv et navn.");
+        const fields = projectFields({ ...p, ...msg });
+        Object.assign(p, fields, { name });
+        for (const program of p.episodes)
+          if (
+            program.folderId &&
+            !p.folders.some((f) => f.id === program.folderId)
+          ) {
+            program.folderId = null;
+            program.updatedAt = new Date().toISOString();
+          }
+        break;
+      }
+      case "updateEpisode": {
+        p = this.data.projects.find((x) => x.id === msg.projectId);
+        e = p?.episodes.find((x) => x.id === msg.id);
+        if (!e || !name) throw Error("Velg program og skriv et navn.");
+        Object.assign(e, episodeFields({ ...e, ...msg }, p), { name });
+        break;
+      }
+      case "saveScreen": {
+        const id = String(msg.id || "");
+        if (!/^[A-Za-z0-9_-]{1,32}$/.test(id) || !name)
+          throw Error(
+            "Skriv navn og skjerm-ID (bokstaver, tall eller bindestrek).",
+          );
+        const screen = this.data.screens.find((x) => x.id === id);
+        if (msg.create && screen) throw Error("Skjerm-ID finnes allerede.");
+        const value = { id, name, mirror: !!msg.mirror, flip: !!msg.flip };
+        if (screen) Object.assign(screen, value);
+        else this.data.screens.push(value);
+        break;
+      }
+      case "deleteScreen":
+        if (msg.id === "1") throw Error("Standardskjermen kan ikke slettes.");
+        this.data.screens = this.data.screens.filter((x) => x.id !== msg.id);
+        break;
+      case "saveMetadata": {
+        s = e?.scripts.find((x) => x.id === msg.id);
+        if (!s) throw Error("Manuset finnes ikke i innlastet program.");
+        const patch = {};
+        if ("name" in msg) {
+          if (!name) throw Error("Skriv en tittel.");
+          patch.name = name;
+        }
+        if ("oscId" in msg) {
+          const oscId = String(msg.oscId).trim();
+          if (oscId && !/^[\w-]{1,64}$/.test(oscId))
+            throw Error("Ugyldig OSC-ID.");
+          if (
+            oscId &&
+            e.scripts.some((x) => x.id !== s.id && x.oscId === oscId)
+          )
+            throw Error("OSC-ID må være unik i dette programmet.");
+          patch.oscId = oscId;
+        }
+        if ("color" in msg) {
+          if (!/^#[0-9a-f]{6}$/i.test(msg.color)) throw Error("Ugyldig farge.");
+          patch.color = msg.color;
+        }
+        if (
+          "displayMode" in msg ||
+          "presetId" in msg ||
+          "customSettings" in msg
+        )
+          Object.assign(
+            patch,
+            scriptDisplay({ ...s, ...msg }, this.data.displayPresets),
+          );
+        Object.assign(s, patch);
+        break;
+      }
+      case "saveText": {
+        s = e?.scripts.find((x) => x.id === msg.id);
+        if (!s || s.version !== msg.version)
+          throw Error(
+            "Teksten er endret av en annen klient. Kopier utkastet eller velg Reset tekst.",
+          );
+        if (typeof msg.html !== "string" || msg.html.length > 1000000)
+          throw Error("Ugyldig eller for stort manus.");
+        const html = clean(msg.html);
+        if (s.id === this.data.selection.script) {
+          this.anchor();
+          this.layout = null;
+        }
+        s.html = html;
+        s.version++;
+        break;
+      }
       case "saveScript": {
         s = e?.scripts.find((x) => x.id === msg.id);
         if (!s)
@@ -473,6 +583,7 @@ class Engine {
           return {
             id: uid(),
             name: p.name.slice(0, 120),
+            ...projectFields(p),
             episodes: p.episodes.map((e) => {
               if (typeof e.name !== "string" || !Array.isArray(e.scripts))
                 throw Error("Ugyldig program.");
@@ -480,6 +591,8 @@ class Engine {
               return {
                 id: uid(),
                 name: e.name.slice(0, 120),
+                ...episodeFields(e, p),
+                updatedAt: new Date().toISOString(),
                 scripts: e.scripts.map((s) => {
                   if (
                     ++count > 5000 ||
@@ -543,6 +656,20 @@ class Engine {
       default:
         throw Error("Ukjent handling.");
     }
+    if (
+      e &&
+      [
+        "createEpisode",
+        "updateEpisode",
+        "createScript",
+        "saveScript",
+        "saveText",
+        "saveMetadata",
+        "deleteScript",
+        "moveScript",
+      ].includes(msg.action)
+    )
+      e.updatedAt = new Date().toISOString();
     this.data.revision++;
   }
 }

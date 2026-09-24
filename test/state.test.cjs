@@ -340,3 +340,114 @@ test("presets round-trip with project export/import and cannot be deleted while 
   const restored = new Engine(JSON.parse(JSON.stringify(e.data)));
   assert.equal(restored.data.displayPresets.length, 2);
 });
+
+test("metadata autosaves without publishing text or invalidating draft version; text publication preserves metadata", () => {
+  const engine = new Engine();
+  const s = engine.current().s,
+    html = s.html,
+    version = s.version;
+  engine.edit("a", {
+    action: "saveMetadata",
+    id: s.id,
+    name: "New title",
+    oscId: "start",
+    color: "#ee3344",
+    html: "must not publish",
+  });
+  assert.equal(s.html, html);
+  assert.equal(s.version, version);
+  engine.edit("b", {
+    action: "saveText",
+    id: s.id,
+    version,
+    html: '<h2 data-chapter="a">Part 2</h2><p>New text</p>',
+  });
+  assert.equal(s.name, "New title");
+  assert.equal(s.oscId, "start");
+  assert.ok(s.html.includes('data-chapter="a"'));
+  assert.ok(engine.current().e.updatedAt);
+});
+test("projects and programs retain branding, folders and dates during import", () => {
+  const engine = new Engine();
+  const p = engine.current().p,
+    e = engine.current().e;
+  engine.edit("a", {
+    action: "updateProject",
+    id: p.id,
+    name: "Broadcast",
+    color: "#112233",
+    folders: [{ id: "season1", name: "Season 1" }],
+  });
+  engine.edit("a", {
+    action: "updateEpisode",
+    projectId: p.id,
+    id: e.id,
+    name: "Sunday",
+    date: "2026-10-11",
+    folderId: "season1",
+  });
+  assert.throws(() =>
+    engine.edit("a", {
+      action: "updateEpisode",
+      projectId: p.id,
+      id: e.id,
+      name: "Sunday",
+      date: "2026-02-31",
+    }),
+  );
+  engine.edit("a", {
+    action: "importProjects",
+    value: { schema: 1, projects: structuredClone(engine.data.projects) },
+  });
+  const copy = engine.data.projects.at(-1);
+  assert.equal(copy.color, "#112233");
+  assert.equal(copy.episodes[0].folderId, "season1");
+  assert.equal(copy.episodes[0].date, "2026-10-11");
+  engine.edit("a", {
+    action: "updateProject",
+    id: p.id,
+    name: p.name,
+    folders: [],
+  });
+  assert.equal(e.folderId, null);
+});
+test("output orientation belongs to each screen and survives script presets and restart", () => {
+  const engine = new Engine();
+  engine.edit("a", {
+    action: "saveScreen",
+    id: "1",
+    name: "Camera 1",
+    mirror: true,
+  });
+  engine.edit("a", {
+    action: "saveScreen",
+    create: true,
+    id: "2",
+    name: "Camera 2",
+    flip: true,
+  });
+  engine.edit("a", {
+    action: "savePreset",
+    name: "Layout",
+    value: { mirror: false, flip: false },
+  });
+  engine.edit("a", {
+    action: "applyPreset",
+    id: engine.data.displayPresets[0].id,
+  });
+  assert.equal(engine.data.screens[0].mirror, true);
+  assert.equal(engine.data.screens[1].flip, true);
+  assert.throws(() =>
+    engine.edit("a", {
+      action: "saveScreen",
+      create: true,
+      id: "2",
+      name: "Duplicate",
+    }),
+  );
+  assert.throws(() => engine.edit("a", { action: "deleteScreen", id: "1" }));
+  assert.deepEqual(
+    new Engine(structuredClone(engine.data)).data.screens,
+    engine.data.screens,
+  );
+});

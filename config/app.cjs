@@ -12,7 +12,7 @@ module.exports = {
     lineHeight: 1.5,
     margin: 120,
     background: "#090b0e",
-    color: "#fffdf2",
+    color: "#ffffff",
     align: "left",
     mirror: false,
     flip: false,

@@ -45,6 +45,50 @@ const { initial } = require("../server/state.cjs");
           .querySelector(".prompt-content")
           ?.textContent.includes("Velkommen"),
     );
+    const peer = await context.newPage();
+    await peer.goto("http://localhost:17990/?editor");
+    await peer.locator(".script-open").first().click();
+    await peer.locator("#editor").fill("Privat tekst i det andre vinduet");
+    await editor.locator("#editor").evaluate((el) => {
+      el.innerHTML =
+        '<p><span style="color:rgb(51, 170, 85);background-color:rgb(170, 34, 51)">Farget tekst</span></p>';
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.focus();
+      const range = document.createRange();
+      range.selectNodeContents(el.querySelector("span"));
+      getSelection().removeAllRanges();
+      getSelection().addRange(range);
+    });
+    await editor.waitForFunction(
+      () => document.querySelector("#text-color").value === "#33aa55",
+    );
+    assert.equal(await editor.locator("#highlight").inputValue(), "#aa2233");
+    await editor.locator("#remove-highlight").click();
+    const highlight = await editor.locator("#editor").evaluate((el) => {
+      const node = getSelection().anchorNode;
+      return getComputedStyle(node.nodeType === 1 ? node : node.parentElement)
+        .backgroundColor;
+    });
+    assert.ok(
+      ["rgba(0, 0, 0, 0)", "transparent"].includes(highlight),
+      highlight,
+    );
+    await editor.locator("#discard-draft").click();
+    await editor.locator("#script-name").fill("Velkommen oppdatert");
+    await editor.locator("#osc-id").fill("opening");
+    await editor.waitForTimeout(100);
+    assert.equal(server.engine.current().s.name, "Velkommen oppdatert");
+    assert.equal(server.engine.current().s.oscId, "opening");
+    assert.equal(server.engine.current().s.version, 1);
+    await peer.waitForFunction(
+      () =>
+        document.querySelector("#script-name").value === "Velkommen oppdatert",
+    );
+    assert.equal(
+      await peer.locator("#editor").innerText(),
+      "Privat tekst i det andre vinduet",
+    );
+    await peer.close();
     await editor
       .locator("#editor")
       .fill(
@@ -152,15 +196,43 @@ const { initial } = require("../server/state.cjs");
     assert.ok(server.engine.position() > held);
     const settings = await context.newPage();
     await settings.goto("http://localhost:17990/display");
-    await settings.waitForSelector("#mirror");
-    await settings.locator("#mirror").check();
+    await settings.waitForSelector('[data-screen="1"][data-axis="mirror"]');
+    await settings.locator('[data-screen="1"][data-axis="mirror"]').check();
     await output.waitForFunction(() =>
       getComputedStyle(
         document.querySelector(".stage-transform"),
       ).transform.includes("-1"),
     );
-    assert.equal(server.engine.data.settings.mirror, true);
-    await settings.locator("#mirror").uncheck();
+    assert.equal(server.engine.data.screens[0].mirror, true);
+    assert.ok(
+      !(
+        await settings
+          .locator(".stage-transform")
+          .evaluate((el) => getComputedStyle(el).transform)
+      ).includes("-1"),
+    );
+    assert.ok(
+      !(
+        await editor
+          .locator(".stage-transform")
+          .evaluate((el) => getComputedStyle(el).transform)
+      ).includes("-1"),
+    );
+    await settings.locator("#add-screen").click();
+    await settings.locator("#screen-id").fill("2");
+    await settings.locator("#screen-name").fill("Kamera 2");
+    await settings.locator("dialog button.primary").click();
+    await other.goto("http://localhost:17990/output?screen=2");
+    await other.waitForSelector(".stage-transform");
+    assert.ok(
+      !(
+        await other
+          .locator(".stage-transform")
+          .evaluate((el) => getComputedStyle(el).transform)
+      ).includes("-1"),
+    );
+
+    await settings.locator('[data-screen="1"][data-axis="mirror"]').uncheck();
     await editor.locator('[data-control="reset"]').click();
     const waitFor = async (check) => {
       for (let i = 0; i < 100; i++) {
@@ -240,6 +312,24 @@ const { initial } = require("../server/state.cjs");
     await waitFor(() => server.engine.data.settings.fontSize === 68);
     await editor.locator(".load-script").nth(1).click();
     assert.equal(server.engine.data.settings.fontSize, 68);
+    await editor.locator("#editor").click();
+    await editor.locator("#add-chapter").click();
+    await editor.locator("#chapter-title").fill("Andre del");
+    await editor.locator("dialog button.primary").click();
+    await editor.waitForSelector("#editor h2[data-chapter]");
+    assert.ok(!server.engine.current().s.html.includes("Andre del"));
+    await editor.locator("#save").click();
+    await waitFor(() => server.engine.current().s.html.includes("Andre del"));
+    await editor.locator("#clear-text").click();
+    assert.equal(await editor.locator("dialog").count(), 1);
+    await editor.locator("dialog button.primary").click();
+    assert.ok(server.engine.current().s.html.includes("Andre del"));
+    await editor.locator("#discard-draft").click();
+    assert.ok(
+      (await editor.locator("#editor").innerText()).includes("Andre del"),
+    );
+    await editor.locator("[data-delete]").first().click();
+    await editor.locator("dialog [data-cancel]").click();
     await editor.locator("#toggle-live").click();
     assert.equal(await editor.locator(".live-body").isVisible(), false);
     await editor.locator("#toggle-live").click();
@@ -255,8 +345,11 @@ const { initial } = require("../server/state.cjs");
     assert.ok(left.x < middle.x && middle.x < right.x);
     const menu = await context.newPage();
     await menu.goto("http://localhost:17990/projects");
+    await menu.locator("#menu-back").click();
     await menu.locator("#menu-create").click();
     await menu.locator("#new-name").fill("Helgesending");
+    await menu.locator("#add-folder").click();
+    await menu.locator("[data-folder-name]").fill("Sesong 1");
     await menu.locator("dialog button.primary").click();
     await menu.waitForFunction(
       () =>
@@ -269,8 +362,11 @@ const { initial } = require("../server/state.cjs");
     );
     await menu.locator("#menu-create").click();
     await menu.locator("#new-name").fill("Søndag");
+    await menu.locator("#program-date").fill("2026-10-11");
+    await menu.locator("#program-folder").selectOption({ label: "Sesong 1" });
     await menu.locator("dialog button.primary").click();
     await menu.waitForSelector("[data-program]");
+    assert.equal(await menu.locator(".program-table").count(), 1);
     assert.equal(server.engine.current().s.id, secondId);
     await menu.screenshot({
       path: path.join(__dirname, "../docs/screenshots/program-menu.png"),
@@ -280,6 +376,7 @@ const { initial } = require("../server/state.cjs");
     await menu.waitForURL("**/?editor");
     await waitFor(() => server.engine.current().e.name === "Søndag");
     await menu.goto("http://localhost:17990/projects");
+    await menu.locator("#menu-back").click();
     await menu.locator(`[data-project="${originalProgram.project}"]`).click();
     await menu.locator(`[data-program="${originalProgram.episode}"]`).click();
     await menu.waitForURL("**/?editor");

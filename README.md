@@ -1,6 +1,6 @@
 # BK Prompter
 
-An offline-first, Norwegian teleprompter for Bedehuskanalen. Version **0.2.0** adds the rundown editor and per-script display presets.
+An offline-first, Norwegian teleprompter for Bedehuskanalen. Version **0.3.0** adds immediate metadata saving, chapter tools, project folders and separate output screens.
 
 ## Run
 
@@ -13,17 +13,19 @@ npm ci
 npm run desktop
 ```
 
-Run only the local server with `npm start`. The packaged desktop app includes its runtime; operators do not need Node or npm. Installing development dependencies and building packages may require internet; running the installed application does not.
+For quick editing, double-click **Start utvikling.command** (Mac) or **Start utvikling.bat** (Windows), or run `npm run dev`. Close the packaged app first. Open http://localhost:7890/projects and refresh the browser after editing web files; server code changes restart the development server automatically. No app compilation is needed. Development uses the same permanent projects/settings as the desktop app. Use `BK_DATA_DIR` to select separate test data if desired. `npm run desktop` also runs directly from source with the minimal launcher.
+
+Run only the local server with `npm start` (this older headless entry point uses `~/.bk-prompter` unless `BK_DATA_DIR` is set). The packaged desktop app includes its runtime; operators do not need Node or npm. Installing development dependencies and building packages may require internet; running the installed application does not.
 
 Default HTTP port: **7890**, listening on all IPv4 interfaces. Default OSC UDP port: **7891**. Connect devices to the same trusted local network. Permit the selected TCP and UDP ports in the host firewall.
 
 | Interface | Local address |
 | --- | --- |
 | Prosjekter og programmer | http://localhost:7890/projects |
-| Manusrom | http://localhost:7890/?editor |
+| Editor | http://localhost:7890/?editor |
 | Ren prompterutgang | http://localhost:7890/output |
 | Mobil / fjernkontroll | http://localhost:7890/controller |
-| Visningsinnstillinger | http://localhost:7890/display |
+| Prompteroppsett | http://localhost:7890/display |
 | System og OSC | http://localhost:7890/settings |
 
 On a phone, the root address automatically opens the mobile controller. Use the server’s LAN address instead of localhost on other devices.
@@ -37,11 +39,13 @@ Use the project menu to choose a project, then open a program. Browsing or creat
 Click a block to edit it without loading it. Each block's **Last inn** button loads that script on all outputs, paused at the beginning. The same operation is available through OSC. The presenter can then start and adjust speed from the phone controller. Editing an off-air script does not alter the live script or its playback position.
 
 
-Unsubmitted script edits stay in that browser tab only. Leaving the page, refreshing, or switching projects/programs/scripts discards unsubmitted edits without publishing them. Returning always loads the current shared state. **Oppdater manus** submits the text, script title, and OSC ID to the shared state, updates every connected output, and automatically persists it. Publishing while rolling preserves the current logical position, speed, and running state. A shorter script can naturally reach its end sooner. Text above the reading point can change which word occupies that position; this version preserves position, not a semantic word anchor.
+Titles, OSC IDs, block colors and script loading settings save immediately and update other clients. Only text/formatting/chapter changes await **Oppdater manus**.
 
-Concurrent edits use revision checking. A stale local draft cannot overwrite another editor’s submitted version. The user can copy the draft or use **Hent publisert tekst** to discard it and load the shared version.
+Unsubmitted script edits stay in that browser tab only. Leaving the page, refreshing, or switching projects/programs/scripts discards unsubmitted edits without publishing them. Returning always loads the current shared state. **Oppdater manus** submits only the script text to the shared state, updates every connected output, and automatically persists it. Publishing while rolling preserves the current logical position, speed, and running state. A shorter script can naturally reach its end sooner. Text above the reading point can change which word occupies that position; this version preserves position, not a semantic word anchor.
 
-Heading formatting defines chapter jump points. Text color and highlight are manual editor controls. Paste inserts plain text; document import retains supported basic formatting. Supported script imports: DOCX, TXT, RTF, MD (plain text), HTML. Complex Word/RTF layouts, tables, and embedded graphics are not preserved. Projects can be exported/imported as JSON in Settings. Imported projects are added as new copies, with new internal IDs and preserved per-program OSC IDs.
+Concurrent edits use revision checking. A stale local draft cannot overwrite another editor’s submitted version. The user can copy the draft or use **Reset tekst** to discard it and load the shared version.
+
+Use **+ Legg til kapittel** to insert a titled chapter at the cursor. Chapter markers and an outline make chapters visible in the editor; the outline lets you jump, rename or remove a chapter marker. Legacy H2 headings are also chapters. **Tøm tekst** clears only the local draft after an in-app confirmation; **Reset tekst** restores the shared text. The toolbar reflects the selected text’s colors and includes a dedicated remove-highlight button. Text color and highlight are manual editor controls. Paste inserts plain text; document import retains supported basic formatting. Supported script imports: DOCX, TXT, RTF, MD (plain text), HTML. Complex Word/RTF layouts, tables, and embedded graphics are not preserved. Projects can be exported/imported as JSON in Settings. Imported projects are added as new copies, with new internal IDs and preserved per-program OSC IDs.
 
 ## Script display settings
 
@@ -49,11 +53,19 @@ Under **Prompter ved innlasting** in each script's editor, choose:
 
 - **Behold gjeldende innstillinger**: loading the script leaves the current display settings unchanged. This is the default for existing scripts.
 - **Bruk forhåndsinnstilling**: choose a named preset from the shared preset library.
-- **Egne innstillinger for dette manuset**: specify font size, spacing, margins, colors, alignment, mirroring, flipping and reading-guide options without creating a reusable preset.
+- **Egne innstillinger for dette manuset**: specify font size, spacing, margins, colors, alignment and reading-guide options without creating a reusable preset.
 
-Click **Oppdater manus** to save the choice with the script. These choices apply when the script is loaded by its button, OSC, next/previous navigation, or when opening a different program. Updating a script while it is live does not automatically reapply its loading settings or reset playback.
+The choice saves automatically with the script. These choices apply when the script is loaded by its button, OSC, next/previous navigation, or when opening a different program. Updating a script while it is live does not automatically reapply its loading settings or reset playback.
 
-Create presets on the **Visning** page by naming and saving the current display settings. Presets persist locally and are included in project export/import. Imported references receive new IDs so they do not overwrite existing presets. Presets referenced by scripts cannot be deleted until those scripts use a different setting choice.
+Create presets on the **Prompteroppsett** page by naming and saving the current display settings. Presets persist locally and are included in project export/import. Imported references receive new IDs so they do not overwrite existing presets. Presets referenced by scripts cannot be deleted until those scripts use a different setting choice.
+
+## Projects, programs and screens
+
+The project menu opens inside the currently loaded project. Use **Alle prosjekter** to return to project tiles. The pencil on a project tile opens its name, color, local logo upload and folders (for example seasons); these fields are also available when creating a project. Removing a folder moves its programs to **Uten mappe** without deleting them.
+
+Programs appear in a list with optional program date and automatic last-modified time. Click the column headings to sort; click again to reverse direction. A folder filter narrows the list. The pencil on a program edits its name, date and folder. Browsing does not load a program; opening a program switches the shared context. The loaded project/program appears in the top-right of all control/settings GUIs. The clean output keeps its canvas clear and identifies the context in its browser title.
+
+In **Prompteroppsett → Utgangsskjermer**, create additional named screens with unique IDs. Default screen **1** is available at `/output` or `/output?screen=1`. Other screens use `/output?screen=ID`. Each screen has independent horizontal mirroring and vertical flipping. All previews remain readable, while outputs share the same content, typography, position and speed. Screen orientation is local equipment configuration and is not changed by script presets. Existing global orientation migrates to screen 1 on upgrade.
 
 ## Live playback
 

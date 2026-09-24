@@ -10,6 +10,11 @@
   --accent-text: #042b2f;
   --border: #243b3f;
   --selected: #103a3e;
+  --live: #ef6267;
+  --publish: #c83b43;
+  --publish-hover: #e04b54;
+  --editor-text: #ffffff;
+  --highlight: #e34f54;
   --danger: #d76960;
   --signal: #ad433d;
   --signal-dark: #422624;

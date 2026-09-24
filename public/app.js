@@ -60,7 +60,7 @@ let stage,
   fontsReady = false;
 const clientName =
   localStorage.getItem("bk-name") ||
-  `${route === "output" ? "Prompter" : route === "controller" ? "Kontroll" : "Studio"} · ${/Android|iPhone|iPad/.test(navigator.userAgent) ? "Mobil" : "Skjerm"}`;
+  `${route === "output" ? "Prompter " + (new URLSearchParams(location.search).get("screen") || "1") : route === "controller" ? "Kontroll" : "Studio"} · ${/Android|iPhone|iPad/.test(navigator.userAgent) ? "Mobil" : "Skjerm"}`;
 function toast(text) {
   $("#toast").textContent = text;
   $("#toast").style.display = "block";
@@ -215,9 +215,9 @@ function openEditor(id) {
 }
 function header() {
   return `<header><a class="menu-link" href="/projects" title="Prosjekter og programmer" aria-label="Prosjekter og programmer">▦</a><a class="brand" href="/?editor"><img class="brand-symbol" src="${esc(CONFIG.logoSymbol)}" alt="Bedehuskanalen">${esc(CONFIG.shortName)} <small>${esc(CONFIG.badge)}</small></a><nav>${[
-    ["editor", "Manus", "/?editor"],
+    ["editor", "Editor", "/?editor"],
     ["controller", "Kontroll", "/controller"],
-    ["display", "Visning", "/display"],
+    ["display", "Prompteroppsett", "/display"],
     ["settings", "Innstillinger", "/settings"],
   ]
     .map(
@@ -226,13 +226,13 @@ function header() {
     )
     .join(
       "",
-    )}</nav><div class="spacer"></div><span class="connection"><i class="dot"></i>TILKOBLET</span><div class="clients"><button class="flat avatars" id="clients-toggle" aria-label="Klienter og kontrollås"></button><div class="clients-panel" hidden></div></div></header>`;
+    )}</nav><div class="spacer"></div><a href="/projects" class="global-context" aria-label="Innlastet prosjekt og program"></a><span class="connection"><i class="dot"></i>TILKOBLET</span><div class="clients"><button class="flat avatars" id="clients-toggle" aria-label="Klienter og kontrollås"></button><div class="clients-panel" hidden></div></div></header>`;
 }
 function preview() {
   return '<div class="preview-box"><div class="stage-viewport"><div class="stage-transform"><div class="stage"><div class="prompt-content"></div></div><div class="guide"></div></div></div></div>';
 }
 function transport() {
-  return `<div class="transport-row"><button data-control="reset" title="Til starten" aria-label="Til starten">↶</button><button class="primary play" data-control="toggle">▶ Start</button><button data-control="next" title="Neste manus" aria-label="Neste manus">↦</button></div><div class="speed-heading"><div><span class="eyebrow">Hastighet</span><div class="speed-value"><span data-speed>60</span><small>px / sek</small></div></div><div class="speed-step"><button data-step="-${CONFIG.speedStep}" aria-label="Saktere">−</button><button data-step="${CONFIG.speedStep}" aria-label="Raskere">+</button></div></div><input id="speed" aria-label="Hastighet" type="range" min="${CONFIG.speedMin}" max="${CONFIG.speedMax}" step="1"><div class="speed-hints"><span>Bakover</span><span>Fremover</span></div><div class="position-line"><span>Posisjon</span><span id="position-label">0 %</span></div><input id="position" aria-label="Posisjon i manus" type="range" min="0" max="1000" step="1"><button class="hold" id="hold">Hold for pause<small>Slipp for å fortsette</small></button>`;
+  return `<div class="transport-row"><button data-control="reset" title="Til starten" aria-label="Til starten">↶</button><button class="primary play" data-control="toggle">▶ Start</button><button data-control="next" title="Neste manus" aria-label="Neste manus">↦</button></div><div class="speed-heading"><div><span class="eyebrow">Hastighet</span><div class="speed-value"><span data-speed>60</span><small>px / sek</small></div></div><div class="speed-step"><button data-step="-${CONFIG.speedStep}" aria-label="Saktere">−</button><button data-step="${CONFIG.speedStep}" aria-label="Raskere">+</button></div></div><input id="speed" aria-label="Hastighet" type="range" min="${CONFIG.speedMin}" max="${CONFIG.speedMax}" step="1"><div class="speed-hints"><span>Oppover</span><span>Nedover</span></div><div class="position-line"><span>Posisjon</span><span id="position-label">0 %</span></div><input id="position" aria-label="Posisjon i manus" type="range" min="0" max="1000" step="1"><button class="hold" id="hold">Hold for pause<small>Slipp for å fortsette</small></button>`;
 }
 function build() {
   if (route === "output") {
@@ -242,13 +242,13 @@ function build() {
   } else {
     let body = "";
     if (route === "editor")
-      body = `<div class="program-strip"><a href="/projects" class="program-exit">← Prosjekter</a><span class="strip-divider"></span><span id="breadcrumb"></span><span class="spacer"></span><span class="eyebrow">PROGRAM INNLASTET</span></div><main class="workspace rundown-workspace"><aside class="live-sidebar"><div class="live-rail"><button id="toggle-live" class="flat" aria-label="Skjul livevisning" aria-expanded="true">‹</button><span class="rail-label">LIVE</span></div><div class="live-body"><div class="section-title"><span class="eyebrow">På prompteren</span><span class="live-badge">● LIVE</span></div><h2 id="live-title"></h2>${preview()}<div class="preview-label"><span>FELLES UTGANG</span><a href="/output" target="_blank">Åpne utgang ↗</a></div>${transport()}<div class="control-divider"></div><div class="section-title"><span class="eyebrow">Kapitler</span><button data-control="chapter" title="Neste kapittel">↦</button></div><div class="chapter-list"></div><div class="keyboard-hint">Mellomrom: start / pause · ↑ ↓: hastighet</div></div></aside><section class="rundown-pane"><div class="rundown-heading"><div><span class="eyebrow">Kjøreplan</span><h1 id="program-title">Manus</h1></div><span id="script-count" class="count-badge"></span></div><div class="rundown-tools"><button class="primary" data-create="Script">+ Nytt manus</button><button id="import">↥ Importer</button><input type="file" id="file" accept=".docx,.txt,.rtf,.md,.html,.htm" hidden></div><div class="script-list"></div><div class="rundown-footer"><span>Trykk på en blokk for å redigere</span><span class="version-label"></span></div></section><section class="editor-pane no-selection"><div class="inspector-heading"><div><span class="eyebrow">Redigering</span><h2 id="editing-title">Velg et manus</h2></div><button id="close-editor" class="flat" aria-label="Lukk redigering">×</button></div><div class="editor-empty"><span class="empty-icon">≡</span><h3>Plass til neste ord.</h3><p>Trykk på en manusblokk for å redigere.<br>Den innlastede teksten fortsetter på prompteren.</p></div><div class="editor-content"><div class="script-meta"><label for="script-name">MANUSTITTEL</label><input id="script-name" aria-label="Manusnavn" placeholder="Gi manuset en tittel"><div class="metadata-row"><div><label for="osc-id">OSC-ID</label><input id="osc-id" placeholder="intro" aria-label="OSC-ID"></div><div><label for="script-color">BLOKKFARGE</label><div class="color-options"><input id="script-color" type="color" aria-label="Blokkfarge" value="#32c6cb">${CONFIG.scriptColors.map((c) => `<button class="color-swatch" data-color="${c}" style="--swatch:${c}" aria-label="Velg farge ${c}"></button>`).join("")}</div></div></div></div>${scriptSettingsPanel()}<div class="toolbar"><select id="block-format" aria-label="Teksttype"><option value="p">Normal tekst</option><option value="h1">Tittel</option><option value="h2">Kapittel</option><option value="h3">Undertittel</option></select><span class="separator"></span><button data-format="bold" title="Fet"><b>B</b></button><button data-format="italic" title="Kursiv"><i>I</i></button><button data-format="underline" title="Understrek"><u>U</u></button><label title="Tekstfarge">A <input type="color" id="text-color" value="#32c6cb" aria-label="Tekstfarge"></label><label title="Uthevingsfarge">▰ <input type="color" id="highlight" value="#665529" aria-label="Uthevingsfarge"></label><button data-format="removeFormat" title="Fjern formatering">Tx</button></div><div id="editor" contenteditable="true" role="textbox" aria-label="Manustekst" aria-multiline="true" spellcheck="true"></div><div class="editor-bottom"><span id="word-count"></span><button id="discard-draft" class="flat" style="font-size:11px;padding:0">Hent publisert tekst</button></div><div class="publish-bar"><div><span class="save-status">Lagret og synkronisert</span><small>Endringer deles først når du oppdaterer.</small></div><button class="primary" id="save">Oppdater manus</button></div></div></section></main>`;
+      body = `<div class="program-strip"><a href="/projects" class="program-exit">← Prosjekter</a><span class="strip-divider"></span><span id="breadcrumb"></span><span class="spacer"></span><span class="eyebrow">PROGRAM INNLASTET</span></div><main class="workspace rundown-workspace"><aside class="live-sidebar"><div class="live-rail"><button id="toggle-live" class="flat" aria-label="Skjul livevisning" aria-expanded="true">‹</button><span class="rail-label">LIVE</span></div><div class="live-body"><div class="section-title"><span class="eyebrow">LIVE</span><span class="live-badge">● LIVE</span></div><h2 id="live-title"></h2>${preview()}<div class="preview-label"><span>FELLES UTGANG</span><a href="/output" target="_blank">Åpne utgang ↗</a></div>${transport()}<div class="control-divider"></div><div class="section-title"><span class="eyebrow">Kapitler</span><button data-control="chapter" title="Neste kapittel">↦</button></div><div class="chapter-list"></div><div class="keyboard-hint">Mellomrom: start / pause · ↑ ↓: hastighet</div></div></aside><section class="rundown-pane"><div class="rundown-heading"><div><span class="eyebrow">Kjøreplan</span><h1 id="program-title">Manus</h1></div><span id="script-count" class="count-badge"></span></div><div class="rundown-tools"><button class="primary" data-create="Script">+ Nytt manus</button><button id="import">↥ Importer</button><input type="file" id="file" accept=".docx,.txt,.rtf,.md,.html,.htm" hidden></div><div class="script-list"></div><div class="rundown-footer"><span>Trykk på en blokk for å redigere</span><span class="version-label"></span></div></section><section class="editor-pane no-selection"><div class="inspector-heading"><div><span class="eyebrow">Redigering</span><h2 id="editing-title">Velg et manus</h2></div><button id="close-editor" class="flat" aria-label="Lukk redigering">×</button></div><div class="editor-empty"><span class="empty-icon">≡</span><h3>Plass til neste ord.</h3><p>Trykk på en manusblokk for å redigere.<br>Den innlastede teksten fortsetter på prompteren.</p></div><div class="editor-content"><div class="script-meta"><label for="script-name">TITTEL</label><input id="script-name" aria-label="Manusnavn" placeholder="Gi manuset en tittel"><div class="metadata-row"><div><label for="osc-id">OSC-ID</label><input id="osc-id" placeholder="intro" aria-label="OSC-ID"></div><div><label for="script-color">BLOKKFARGE</label><div class="color-options"><input id="script-color" type="color" aria-label="Blokkfarge" value="#32c6cb">${CONFIG.scriptColors.map((c) => `<button class="color-swatch" data-color="${c}" style="--swatch:${c}" aria-label="Velg farge ${c}"></button>`).join("")}</div></div></div></div>${scriptSettingsPanel()}<div class="toolbar"><select id="block-format" aria-label="Teksttype"><option value="p">Normal tekst</option><option value="h1">Tittel</option><option value="h3">Undertittel</option></select><span class="separator"></span><button data-format="bold" title="Fet"><b>B</b></button><button data-format="italic" title="Kursiv"><i>I</i></button><button data-format="underline" title="Understrek"><u>U</u></button><label title="Tekstfarge">A <input type="color" id="text-color" value="#ffffff" aria-label="Tekstfarge"></label><label title="Uthevingsfarge">▰ <input type="color" id="highlight" value="#e34f54" aria-label="Uthevingsfarge"></label><button id="remove-highlight" title="Fjern uthevingsfarge">▱</button><button data-format="removeFormat" title="Fjern formatering">Tx</button></div><div class="chapter-tools"><button id="add-chapter">+ Legg til kapittel</button><span>Settes inn ved tekstmarkøren</span></div><div id="editor-chapters"></div><div id="editor" contenteditable="true" role="textbox" aria-label="Manustekst" aria-multiline="true" spellcheck="true"></div><div class="editor-bottom"><span id="word-count"></span><button id="discard-draft" class="flat" style="font-size:11px;padding:0">Reset tekst</button><button id="clear-text" class="flat danger">Tøm tekst</button></div><div class="publish-bar"><div><span class="save-status">Lagret og synkronisert</span><small>Bare teksten venter på oppdatering.</small></div><button class="primary publish" id="save">Oppdater manus</button></div></div></section></main>`;
     else if (route === "projects")
       body = `<main class="project-menu"><div class="menu-heading"><div><span class="eyebrow">Arbeidsområde</span><h1 id="menu-title">Dine prosjekter</h1><p id="menu-description" class="muted">Velg prosjekt, deretter programmet du vil arbeide med.</p></div><button class="primary" id="menu-create" data-create="Project">+ Nytt prosjekt</button></div><div class="menu-breadcrumb"><button id="menu-back" class="flat" hidden>← Alle prosjekter</button><a href="/?editor" id="resume-program">Til innlastet program →</a></div><div class="project-grid"></div><div class="menu-note"><i class="dot"></i><span id="loaded-program"></span></div></main>`;
     else if (route === "controller")
-      body = `<main class="mobile-control"><span class="eyebrow">Fjernkontroll</span><h1 id="controller-title">Prompter</h1><span class="muted" id="controller-program"></span>${preview()}${transport()}<div class="control-divider"></div><div class="transport-row"><button data-control="previous">← Forrige manus</button><button data-control="chapter">Neste kapittel →</button></div><div class="chapter-list" style="margin-top:20px"></div><a class="mobile-editor-link" href="/?editor">Åpne manusredigering →</a><a class="mobile-editor-link" href="/display">Visningsinnstillinger →</a></main>`;
+      body = `<main class="mobile-control"><span class="eyebrow">Fjernkontroll</span><h1 id="controller-title">Prompter</h1><span class="muted" id="controller-program"></span>${preview()}${transport()}<div class="control-divider"></div><div class="transport-row"><button data-control="previous">← Forrige manus</button><button data-control="chapter">Neste kapittel →</button></div><div class="chapter-list" style="margin-top:20px"></div><a class="mobile-editor-link" href="/?editor">Åpne manusredigering →</a><a class="mobile-editor-link" href="/display">Prompteroppsett →</a></main>`;
     else if (route === "display")
-      body = `<main class="settings-page"><span class="eyebrow">Prompteroppsett</span><h1>${esc(CONFIG.displayTitle)}</h1><p class="muted">Felles innstillinger for alle utganger. Forhåndsvisningen følger sendingen.</p><div class="settings-grid"><div><section class="settings-card"><h2>Forhåndsinnstillinger</h2><p class="muted">Lagre gjeldende oppsett, og bruk det på ett eller flere manus.</p><select id="display-preset" aria-label="Lagrede forhåndsinnstillinger"></select><div class="preset-actions"><button id="apply-preset">Bruk nå</button><button id="delete-preset" class="flat danger">Slett</button></div><div class="preset-save"><input id="preset-name" placeholder="Navn på oppsett" aria-label="Navn på forhåndsinnstilling"><button id="save-preset" class="primary">Lagre</button></div></section><section class="settings-card"><h2>Typografi og leseflate</h2>${rangeField("fontSize", "Skriftstørrelse", 20, 120, 1)}${rangeField("lineHeight", "Linjeavstand", 1, 2.5, 0.1)}${rangeField("margin", "Sidemarger", 20, 400, 10)}<div class="field"><label for="align">Tekstjustering</label><select id="align" data-setting="align"><option value="left">Venstre</option><option value="center">Midtstilt</option><option value="right">Høyre</option></select></div><div class="field"><label for="color">Tekstfarge</label><input type="color" id="color" data-setting="color"></div><div class="field"><label for="background">Bakgrunn</label><input type="color" id="background" data-setting="background"></div></section><section class="settings-card"><h2>Skjerm og speil</h2>${checkField("mirror", "Speil horisontalt")}${checkField("flip", "Vend vertikalt")}${checkField("guide", "Vis lesemarkør")}${rangeField("guidePosition", "Lesepunkt (%)", 5, 80, 1)}</section></div><div class="settings-preview">${preview()}<div class="preview-label"><span>FORHÅNDSVISNING · DIREKTE</span><a href="/output" target="_blank">Åpne ren utgang ↗</a></div>${transport()}<p class="muted">Alle skjermer bruker samme tekstbredde og skrifttype. Utgangen skaleres til skjermen uten å endre linjebryting.<br>Dobbeltklikk på utgangen for fullskjerm. Ingen betjeningsfelt vises over teksten.</p></div></div></main>`;
+      body = `<main class="settings-page"><span class="eyebrow">Prompteroppsett</span><h1>${esc(CONFIG.displayTitle)}</h1><p class="muted">Felles innstillinger for alle utganger. Forhåndsvisningen følger sendingen.</p><div class="settings-grid"><div><section class="settings-card"><h2>Forhåndsinnstillinger</h2><p class="muted">Lagre gjeldende oppsett, og bruk det på ett eller flere manus.</p><select id="display-preset" aria-label="Lagrede forhåndsinnstillinger"></select><div class="preset-actions"><button id="apply-preset">Bruk nå</button><button id="delete-preset" class="flat danger">Slett</button></div><div class="preset-save"><input id="preset-name" placeholder="Navn på oppsett" aria-label="Navn på forhåndsinnstilling"><button id="save-preset" class="primary">Lagre</button></div></section><section class="settings-card"><h2>Typografi og leseflate</h2>${rangeField("fontSize", "Skriftstørrelse", 20, 120, 1)}${rangeField("lineHeight", "Linjeavstand", 1, 2.5, 0.1)}${rangeField("margin", "Sidemarger", 20, 400, 10)}<div class="field"><label for="align">Tekstjustering</label><select id="align" data-setting="align"><option value="left">Venstre</option><option value="center">Midtstilt</option><option value="right">Høyre</option></select></div><div class="field"><label for="color">Tekstfarge</label><input type="color" id="color" data-setting="color"></div><div class="field"><label for="background">Bakgrunn</label><input type="color" id="background" data-setting="background"></div></section><section class="settings-card"><h2>Lesemarkør</h2>${checkField("guide", "Vis lesemarkør")}${rangeField("guidePosition", "Lesepunkt (%)", 5, 80, 1)}</section><section class="settings-card"><h2>Utgangsskjermer</h2><p class="muted">Hver skjerm har egen adresse og speiling. Forhåndsvisninger er alltid lesbare.</p><div id="screen-list"></div><button id="add-screen">+ Legg til skjerm</button></section></div><div class="settings-preview">${preview()}<div class="preview-label"><span>FORHÅNDSVISNING · DIREKTE</span><a href="/output" target="_blank">Åpne ren utgang ↗</a></div>${transport()}<p class="muted">Alle skjermer bruker samme tekstbredde og skrifttype. Utgangen skaleres til skjermen uten å endre linjebryting.<br>Dobbeltklikk på utgangen for fullskjerm. Ingen betjeningsfelt vises over teksten.</p></div></div></main>`;
     else
       body = `<main class="settings-page"><span class="eyebrow">System</span><h1>${esc(CONFIG.settingsTitle)}</h1><p class="muted">Lokal avspilling. Direkte kontroll. <span class="version-label"></span></p><div class="settings-grid"><div><section class="settings-card"><h2>OSC</h2><p class="muted">UDP på alle IPv4-nettverksgrensesnitt.</p><div class="field"><label for="osc-enabled">Aktiver OSC</label><input type="checkbox" id="osc-enabled"></div><div class="field"><label for="osc-port">Lytteport</label><input type="number" id="osc-port" min="1024" max="65535"></div><p id="osc-status" class="notice"></p><button id="save-network" class="primary">Lagre OSC-oppsett</button></section><section class="settings-card"><h2>Denne klienten</h2><label for="client-name" class="muted">Navn i klientlisten</label><input id="client-name" class="name-input" value="${esc(clientName)}"><button id="save-client">Lagre navn</button></section><section class="settings-card"><h2>Prosjektkopi</h2><p class="muted">Last ned prosjekter og manus som JSON.</p><a href="/api/export" download><button>Eksporter prosjekter ↧</button></a><button id="import-projects" style="margin-top:10px">Importer prosjekter ↥</button><input id="project-file" type="file" accept=".json" hidden></section></div><div><section class="settings-card"><h2>Automatisering</h2><p class="muted">OSC-ID slås opp i programmet som er innlastet. Samme ID kan brukes i ulike programmer.</p><table class="osc-table">${[
         ["load", '"intro"', "Last manus etter OSC-ID"],
@@ -294,7 +294,14 @@ function updateConnection() {
     el.classList.toggle("offline", !connected);
     el.innerHTML = `<i class="dot"></i>${connected ? (state?.lock ? "KONTROLL LÅST" : "TILKOBLET") : "KOBLER TIL …"}`;
   }
-  if ($(".output-warning")) $(".output-warning").hidden = connected;
+  if ($(".output-warning")) {
+    const missing = connected && state && !outputScreen();
+    $(".output-warning").hidden = connected && !missing;
+    $(".output-warning").textContent = missing
+      ? "Skjerm-ID finnes ikke. Velg en skjerm i Prompteroppsett."
+      : "Frakoblet — avspilling fryst";
+    if (stage) stage.style.visibility = missing ? "hidden" : "visible";
+  }
   for (const el of $$(
     "[data-control],[data-step],#speed,#position,#hold,[data-setting],#save-network",
   ))
@@ -305,6 +312,11 @@ function updateConnection() {
 function render() {
   if (!state) return;
   const { p, e, s } = current();
+  if ($(".global-context"))
+    $(".global-context").textContent =
+      [p?.name, e?.name].filter(Boolean).join(" / ") ||
+      "Ingen program innlastet";
+  document.title = [CONFIG.name, p?.name, e?.name].filter(Boolean).join(" · ");
   const nextContext = `${p?.id}/${e?.id}`;
   if (route === "editor" && programContext !== nextContext) {
     programContext = nextContext;
@@ -363,6 +375,8 @@ function render() {
         setScriptSettings(s);
       } else conflict = true;
     }
+    syncMetadata(s);
+    renderEditorChapters();
     $(".save-status").textContent = conflict
       ? "Konflikt · kopier utkast"
       : saving
@@ -379,6 +393,7 @@ function render() {
       e?.name || "Velg program i manusrommet";
   }
   renderPresetOptions();
+  if (route === "display") renderScreens();
   if (route === "display")
     for (const el of $$("[data-setting]")) {
       if (document.activeElement !== el) {
@@ -423,8 +438,6 @@ function scriptSettingsPanel() {
     ["guidePosition", "Lesepunkt (%)", 5, 80, 1],
   ];
   return `<details class="script-display-panel"><summary>Prompter ved innlasting <span id="script-display-summary">Behold gjeldende</span></summary><div class="script-display-body"><label for="script-display-mode">NÅR DETTE MANUSET LASTES</label><select id="script-display-mode"><option value="keep">Behold gjeldende innstillinger</option><option value="preset">Bruk forhåndsinnstilling</option><option value="custom">Egne innstillinger for dette manuset</option></select><div id="script-preset-row" hidden><label for="script-preset">FORHÅNDSINNSTILLING</label><select id="script-preset"></select><a href="/display" target="_blank">Administrer forhåndsinnstillinger ↗</a></div><div id="script-custom-row" hidden><p>Gjelder bare dette manuset. Ingen forhåndsinnstilling opprettes.</p><div class="custom-grid">${numeric.map(([id, label, min, max, step]) => `<label>${label}<input type="number" data-custom-setting="${id}" min="${min}" max="${max}" step="${step}" aria-label="Egen ${label.toLowerCase()}"></label>`).join("")}<label>Tekstfarge<input type="color" data-custom-setting="color" aria-label="Egen tekstfarge"></label><label>Bakgrunn<input type="color" data-custom-setting="background" aria-label="Egen bakgrunn"></label><label>Justering<select data-custom-setting="align"><option value="left">Venstre</option><option value="center">Midtstilt</option><option value="right">Høyre</option></select></label>${[
-    ["mirror", "Speil horisontalt"],
-    ["flip", "Vend vertikalt"],
     ["guide", "Vis lesemarkør"],
   ]
     .map(
@@ -433,7 +446,7 @@ function scriptSettingsPanel() {
     )
     .join(
       "",
-    )}</div></div><p class="script-display-hint">Brukes ved «Last inn», neste manus og OSC. Oppdater manus for å lagre valget.</p></div></details>`;
+    )}</div></div><p class="script-display-hint">Brukes ved «Last inn», neste manus og OSC. Valget lagres automatisk.</p></div></details>`;
 }
 function readScriptSettings() {
   return {
@@ -503,40 +516,10 @@ function renderRundown(episode) {
         const color = /^#[0-9a-f]{6}$/i.test(script.color)
           ? script.color
           : CONFIG.scriptColors[0];
-        return `<article class="script-card ${selected ? "selected" : ""} ${live ? "on-air" : ""}" style="--script-color:${color}"><div class="script-order"><span>${String(i + 1).padStart(2, "0")}</span><span class="order-line"></span><button data-move="-1" data-id="${script.id}" aria-label="Flytt ${esc(script.name)} opp" ${i === 0 ? "disabled" : ""}>↑</button><button data-move="1" data-id="${script.id}" aria-label="Flytt ${esc(script.name)} ned" ${i === episode.scripts.length - 1 ? "disabled" : ""}>↓</button></div><div class="script-block-main"><button class="script-open" data-script="${script.id}" aria-pressed="${selected}"><div class="script-block-top"><span class="osc-chip">${script.oscId ? `ID / ${esc(script.oscId)}` : "Ingen OSC-ID"}</span><span class="script-state ${live ? "live-badge" : ""}">${live ? "● PÅ PROMPTEREN" : selected ? "REDIGERER" : "MANUS"}</span></div><h2>${esc(script.name)}</h2><p>${esc(summary.text.slice(0, 100))}${summary.text.length > 100 ? "…" : ""}</p></button><div class="script-block-bottom"><span>${summary.words} ord · ${{ keep: "Behold visning", preset: "Forhåndsinnstilling", custom: "Egen visning" }[script.displayMode || "keep"]}</span><span class="spacer"></span><button data-delete="${script.id}" class="flat" aria-label="Slett ${esc(script.name)}">⌫</button><button data-load="${script.id}" class="load-script" title="Last på prompteren fra start">↥ Last inn</button></div></div></article>`;
+        return `<article class="script-card ${selected ? "selected" : ""} ${live ? "on-air" : ""}" style="--script-color:${color}"><div class="script-order"><span>${String(i + 1).padStart(2, "0")}</span><span class="order-line"></span><button data-move="-1" data-id="${script.id}" aria-label="Flytt ${esc(script.name)} opp" ${i === 0 ? "disabled" : ""}>↑</button><button data-move="1" data-id="${script.id}" aria-label="Flytt ${esc(script.name)} ned" ${i === episode.scripts.length - 1 ? "disabled" : ""}>↓</button></div><div class="script-block-main"><button class="script-open" data-script="${script.id}" aria-pressed="${selected}"><div class="script-block-top"><span class="osc-chip">${script.oscId ? `ID / ${esc(script.oscId)}` : "Ingen OSC-ID"}</span><span class="script-state ${live ? "live-badge" : ""}">${live ? "● LIVE" : selected ? "REDIGERER" : "MANUS"}</span></div><h2>${esc(script.name)}</h2><p>${esc(summary.text.slice(0, 100))}${summary.text.length > 100 ? "…" : ""}</p></button><div class="script-block-bottom"><span>${summary.words} ord · ${{ keep: "Behold visning", preset: "Forhåndsinnstilling", custom: "Egen visning" }[script.displayMode || "keep"]}</span><span class="spacer"></span><button data-delete="${script.id}" class="flat" aria-label="Slett ${esc(script.name)}">${trashIcon()}</button><button data-load="${script.id}" class="load-script" title="Last på prompteren fra start">↥ Last inn</button></div></div></article>`;
       })
       .join("") ||
     `<div class="rundown-empty"><span class="empty-icon">≡</span><h2>${episode ? "En ny kjøreplan" : "Ingen program innlastet"}</h2><p>${episode ? "Legg til et manus eller importer en fil for å komme i gang." : "Gå til prosjektmenyen og velg et program."}</p>${episode ? '<button class="primary" data-create="Script">+ Nytt manus</button>' : '<a href="/projects">Velg program →</a>'}</div>`;
-}
-function renderMenu() {
-  if (route !== "projects" || !state) return;
-  const project = state.projects.find((x) => x.id === menuProjectId);
-  if (!project) menuProjectId = null;
-  const key = JSON.stringify([state.projects, menuProjectId, state.selection]);
-  if (key === menuKey) return;
-  menuKey = key;
-  $("#menu-title").textContent = project?.name || "Dine prosjekter";
-  $("#menu-description").textContent = project
-    ? "Velg episode eller program. Når du åpner det, følger alle skjermer med."
-    : "Velg prosjekt, deretter programmet du vil arbeide med.";
-  $("#menu-back").hidden = !project;
-  $("#menu-create").dataset.create = project ? "Episode" : "Project";
-  $("#menu-create").textContent = project
-    ? "+ Nytt program"
-    : "+ Nytt prosjekt";
-  const { p, e } = current();
-  $("#loaded-program").textContent = e
-    ? `Innlastet nå: ${p.name} / ${e.name}. Sendingen fortsetter mens du blar i menyen.`
-    : "Ingen program innlastet.";
-  $("#resume-program").hidden = !e;
-  $(".project-grid").innerHTML =
-    (project ? project.episodes : state.projects)
-      .map(
-        (item) =>
-          `<button class="project-tile" ${project ? `data-program="${item.id}"` : `data-project="${item.id}"`}><div class="tile-top"><span class="tile-icon">${project ? "≡" : "▱"}</span><span class="eyebrow">${project ? (item.id === e?.id ? "INNLASTET" : "PROGRAM") : "PROSJEKT"}</span></div><h2>${esc(item.name)}</h2><p>${project ? item.scripts.length + " manus" : item.episodes.length + " programmer"}</p><div class="tile-action">${project ? "Åpne program" : "Velg prosjekt"}<span>→</span></div></button>`,
-      )
-      .join("") ||
-    '<p class="empty">Ingen programmer ennå. Opprett det første for å komme i gang.</p>';
 }
 function updateClients() {
   let toggle = $("#clients-toggle");
@@ -569,7 +552,7 @@ function applyStyle(el) {
 function updateLayout() {
   if (!fontsReady) return;
   const { s } = current(),
-    key = JSON.stringify([s?.id, s?.version, state.settings]);
+    key = JSON.stringify([s?.id, s?.version, state.settings, state.screens]);
   if (key === layoutKey) return;
   layoutKey = key;
   ruler.style.width = CONFIG.logicalWidth + "px";
@@ -582,12 +565,12 @@ function updateLayout() {
     applyStyle(content);
     viewport.style.background = state.settings.background;
     $(".stage-transform").style.transform =
-      `scale(${state.settings.mirror ? -1 : 1},${state.settings.flip ? -1 : 1})`;
+      `scale(${route === "output" && outputScreen()?.mirror ? -1 : 1},${route === "output" && outputScreen()?.flip ? -1 : 1})`;
     guide.style.display = state.settings.guide ? "" : "none";
     guide.style.top = state.settings.guidePosition + "%";
   }
   maxPosition = Math.max(0, ruler.getBoundingClientRect().height);
-  chapters = $$("h1,h2,h3", ruler).map((el) => ({
+  chapters = $$("h2", ruler).map((el) => ({
     name: el.textContent,
     position: Math.max(0, el.offsetTop),
   }));
@@ -649,31 +632,18 @@ async function persistDraft() {
   saving = true;
   const id = editorId,
     version = editorVersion,
-    html = $("#editor").innerHTML,
-    name = $("#script-name").value,
-    oscId = $("#osc-id").value,
-    color = $("#script-color").value,
-    display = readScriptSettings();
+    html = $("#editor").innerHTML;
   try {
     await request({
       type: "edit",
-      action: "saveScript",
+      action: "saveText",
       id,
       version,
       html,
-      name,
-      oscId,
-      color,
-      ...display,
     });
     if (editorId === id) {
       editorVersion = version + 1;
-      dirty =
-        $("#editor").innerHTML !== html ||
-        $("#script-name").value !== name ||
-        $("#osc-id").value !== oscId ||
-        $("#script-color").value !== color ||
-        JSON.stringify(readScriptSettings()) !== JSON.stringify(display);
+      dirty = $("#editor").innerHTML !== html;
     }
   } catch (e) {
     if (editorId === id && editingScript()?.version !== version)
@@ -685,6 +655,7 @@ async function persistDraft() {
   }
 }
 function markDirty() {
+  renderEditorChapters();
   dirty = true;
   $(".save-status").textContent = "Lokale endringer · ikke sendt";
   clearTimeout(saveTimer);
@@ -717,6 +688,7 @@ async function edit(data) {
   }
 }
 function nameDialog(kind) {
+  if (kind !== "Script") return organizationDialog(kind);
   const labels = { Project: "prosjekt", Episode: "program", Script: "manus" };
   const dialog = document.createElement("dialog");
   dialog.innerHTML = `<form><h2>Nytt ${labels[kind]}</h2><label for="new-name">Navn</label><input id="new-name" required maxlength="120" autofocus placeholder="Gi ${labels[kind]}et et navn"><div class="dialog-actions"><button type="button" data-cancel>Avbryt</button><button class="primary">Opprett</button></div></form>`;
@@ -733,8 +705,10 @@ function nameDialog(kind) {
 let savedRange;
 function rememberRange() {
   const sel = getSelection();
-  if (sel.rangeCount && $("#editor")?.contains(sel.anchorNode))
+  if (sel.rangeCount && $("#editor")?.contains(sel.anchorNode)) {
     savedRange = sel.getRangeAt(0).cloneRange();
+    syncSelectionColors(sel);
+  }
 }
 function format(cmd, value) {
   $("#editor").focus();
@@ -767,7 +741,7 @@ function bind() {
     if (b.dataset.load) command("load", b.dataset.load);
     if (b.dataset.color) {
       $("#script-color").value = b.dataset.color;
-      markDirty();
+      saveMetadata({ color: b.dataset.color });
     }
     if (b.dataset.project) {
       menuProjectId = b.dataset.project;
@@ -783,11 +757,13 @@ function bind() {
       })
         .then(() => (location.href = "/?editor"))
         .catch((e) => toast(e.message));
-    if (
-      b.dataset.delete &&
-      confirm("Slette dette manuset? Dette kan ikke angres.")
-    )
-      edit({ action: "deleteScript", id: b.dataset.delete });
+    if (b.dataset.delete)
+      confirmGUI(
+        "Slette dette manuset?",
+        "Manuset fjernes fra programmet. Dette kan ikke angres.",
+        () => edit({ action: "deleteScript", id: b.dataset.delete }),
+        b,
+      );
     if (b.dataset.chapter)
       command("seek", chapters[Number(b.dataset.chapter)].position);
     if (b.dataset.lock !== undefined)
@@ -804,9 +780,9 @@ function bind() {
   });
   $("#script-display-mode")?.addEventListener("change", () => {
     toggleScriptSettings();
-    markDirty();
+    saveDisplayMetadata();
   });
-  $("#script-preset")?.addEventListener("change", markDirty);
+  $("#script-preset")?.addEventListener("change", saveDisplayMetadata);
   for (const input of $$("[data-custom-setting]"))
     input.addEventListener("input", () => {
       customDraft[input.dataset.customSetting] =
@@ -815,7 +791,7 @@ function bind() {
           : input.type === "number"
             ? Number(input.value)
             : input.value;
-      markDirty();
+      saveDisplayMetadata();
     });
   $("#save-preset")?.addEventListener("click", async () => {
     try {
@@ -838,12 +814,16 @@ function bind() {
     }).catch((e) => toast(e.message)),
   );
   $("#delete-preset")?.addEventListener("click", () => {
-    if (confirm("Slette denne forhåndsinnstillingen?"))
-      request({
-        type: "edit",
-        action: "deletePreset",
-        id: $("#display-preset").value,
-      }).catch((e) => toast(e.message));
+    confirmGUI(
+      "Slette forhåndsinnstillingen?",
+      "Oppsettet fjernes fra biblioteket.",
+      () =>
+        request({
+          type: "edit",
+          action: "deletePreset",
+          id: $("#display-preset").value,
+        }).catch((e) => toast(e.message)),
+    );
   });
   $("#close-editor")?.addEventListener("click", () => openEditor(null));
   $("#menu-back")?.addEventListener("click", () => {
@@ -881,18 +861,23 @@ function bind() {
   $("#episode")?.addEventListener("change", (event) =>
     edit({ action: "selectEpisode", id: event.target.value }),
   );
-  for (let selector of ["#editor", "#script-name", "#osc-id", "#script-color"])
-    $(selector)?.addEventListener("input", markDirty);
+  $("#editor")?.addEventListener("input", markDirty);
+  for (const [selector, key] of [
+    ["#script-name", "name"],
+    ["#osc-id", "oscId"],
+    ["#script-color", "color"],
+  ])
+    $(selector)?.addEventListener("input", (event) =>
+      saveMetadata({ [key]: event.target.value }),
+    );
+  bindWorkspace();
   $("#editor")?.addEventListener("paste", (event) => {
     event.preventDefault();
     format("insertText", event.clipboardData.getData("text/plain"));
   });
   $("#discard-draft")?.addEventListener("click", () => {
-    if (
-      !confirm("Erstatte utkastet med teksten som er publisert til prompteren?")
-    )
-      return;
     dirty = false;
+    conflict = false;
     editorId = null;
     render();
   });
@@ -903,10 +888,6 @@ function bind() {
     } catch (e) {
       toast(e.message);
     }
-  });
-  $("#delete-script")?.addEventListener("click", () => {
-    if (editorId && confirm("Slette dette manuset? Dette kan ikke angres."))
-      edit({ action: "deleteScript", id: editorId });
   });
   for (let el of $$("[data-format]"))
     el.addEventListener("pointerdown", (e) => e.preventDefault());

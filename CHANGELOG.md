@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+- Script title, OSC ID, block color and loading policy now save immediately. Only text, formatting and chapters wait for **Oppdater manus**; text publication preserves live playback and concurrent metadata changes.
+- Added explicit chapter insertion, a chapter outline, rename/remove controls, selection-aware colors and remove-highlight. Default text is white and highlight red.
+- Added **Reset tekst**, **Tøm tekst**, trash icons and in-app confirmations. Red LIVE labels and update button; full-height script color rails.
+- Project branding editor with local logos, colors and folders; programs now use a sortable list with dates and last-modified times. Returning to the menu opens the loaded project.
+- Shared loaded project/program in GUI headers. Renamed navigation to **Editor**, **Prompteroppsett**, **Oppover** and **Nedover**.
+- Multiple output screens with IDs, URLs and independent mirror/flip settings. All previews remain readable. Existing orientation migrates to screen 1; script presets no longer alter physical screen orientation.
+- Added double-click development launchers and `npm run dev`, using the installed app's persistent data without rebuilding. All runtime assets remain offline.
+- Existing projects/settings are retained; upgrades create a backup. Data schema remains compatible at version 1.
+
 ## 0.2.0
 
 - New three-panel rundown: collapsible live sidebar, colored script blocks, and a separate script editor.

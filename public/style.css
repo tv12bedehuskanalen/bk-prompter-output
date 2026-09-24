@@ -1895,3 +1895,356 @@ header {
   min-width: 29px;
   height: 29px;
 }
+/* Editor and organization controls — shared accent values are in theme.css. */
+.global-context {
+  font-size: 12px;
+  max-width: 260px;
+  text-align: right;
+  line-height: 1.4;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  margin: 0 18px;
+}
+.script-card {
+  align-items: stretch !important;
+  overflow: hidden;
+}
+.script-order {
+  align-self: stretch !important;
+  height: auto !important;
+  border-left: 4px solid var(--script-color);
+}
+.live-badge,
+.live-body > .section-title > .eyebrow {
+  color: var(--live) !important;
+}
+.live-badge {
+  background: #ef626715 !important;
+}
+button.publish {
+  background: var(--publish);
+  color: white;
+  border-color: #dc5158;
+}
+button.publish:hover {
+  background: var(--publish-hover);
+}
+button[data-delete],
+button.trash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+button[data-delete]:hover,
+button.trash:hover {
+  color: #ff626a;
+  background: #ff626a18;
+}
+#editor {
+  color: var(--editor-text);
+}
+#editor h2 {
+  position: relative;
+  border-top: 1px dashed #32c6cb70;
+  border-bottom: 1px dashed #32c6cb70;
+  padding: 12px 10px;
+  background: #32c6cb0a;
+}
+#editor h2:before {
+  content: "KAPITTEL";
+  display: block;
+  font:
+    10px Prompter,
+    sans-serif;
+  letter-spacing: 0.13em;
+  color: #32c6cb;
+  margin-bottom: 7px;
+  user-select: none;
+}
+.chapter-tools {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.chapter-tools span {
+  font-size: 11px;
+  color: var(--muted);
+}
+#editor-chapters {
+  max-height: 130px;
+  overflow: auto;
+  flex-shrink: 0;
+}
+.editor-chapter {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid #ffffff08;
+}
+.editor-chapter > button:first-child {
+  flex: 1;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+}
+.editor-chapter small {
+  color: #32c6cb;
+  font-size: 9px;
+  margin-right: 10px;
+}
+.editor-chapter .flat {
+  padding: 6px;
+}
+.dialog-error {
+  color: #ff626a;
+  font-size: 13px;
+}
+dialog {
+  max-height: 88vh;
+  overflow: auto;
+}
+dialog label {
+  display: block;
+  margin: 14px 0 6px;
+}
+dialog input:not([type="color"]),
+dialog select {
+  width: 100%;
+}
+.confirmation {
+  max-width: 350px;
+}
+.confirmation p {
+  line-height: 1.5;
+  color: var(--muted);
+}
+.project-card {
+  position: relative;
+  padding: 0 !important;
+  border-top: 3px solid var(--project-color) !important;
+  overflow: hidden;
+}
+.project-select {
+  display: block;
+  text-align: left;
+  width: 100%;
+  height: 100%;
+  padding: 26px;
+  background: transparent;
+  border: 0;
+}
+.project-pen {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.project-logo {
+  width: 100px;
+  height: 64px;
+  object-fit: contain;
+  object-position: left;
+}
+.project-select h2 {
+  margin-top: 20px;
+}
+.project-appearance {
+  padding-bottom: 12px;
+}
+#logo-preview {
+  max-width: 160px;
+  max-height: 100px;
+  margin-top: 10px;
+}
+.folder-edit {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0;
+}
+.project-grid.program-list {
+  display: block;
+}
+.program-list-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 20px;
+}
+.program-list-tools label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.program-table {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.program-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) 150px 180px 46px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #ffffff0a;
+}
+.program-row:last-child {
+  border: 0;
+}
+.program-table-head {
+  background: #ffffff05;
+  font-size: 12px;
+}
+.program-table-head button {
+  text-align: left;
+  padding: 0;
+}
+.program-open {
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 8px 0;
+}
+.program-open strong {
+  display: block;
+  font-size: 17px;
+}
+.program-open small {
+  display: block;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.program-row > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.program-row.loaded {
+  box-shadow: inset 3px 0 #32c6cb;
+  background: #32c6cb08;
+}
+.screen-row {
+  position: relative;
+  padding: 16px 0;
+  border-bottom: 1px solid #ffffff12;
+  margin-bottom: 14px;
+}
+.screen-row strong,
+.screen-row small,
+.screen-row a,
+.screen-row code {
+  display: block;
+  margin-bottom: 6px;
+}
+.screen-row small {
+  color: var(--muted);
+}
+.screen-row code {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.screen-row label {
+  display: block;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.screen-row .trash {
+  position: absolute;
+  top: 10px;
+  right: 0;
+}
+@media (max-width: 900px) {
+  .global-context {
+    max-width: 160px;
+    font-size: 10px;
+    margin: 0 8px;
+  }
+  .program-row {
+    grid-template-columns: minmax(120px, 1fr) 100px 120px 32px;
+    gap: 6px;
+    padding: 10px;
+  }
+  .program-row > span {
+    font-size: 11px;
+  }
+}
+@media (max-width: 600px) {
+  header {
+    flex-wrap: wrap;
+  }
+  .global-context {
+    order: 4;
+    max-width: none;
+    width: 100%;
+    text-align: right;
+    padding: 4px 0;
+  }
+  .program-row {
+    grid-template-columns: minmax(100px, 1fr) 80px 88px 28px;
+  }
+  .program-list-tools {
+    align-items: flex-start;
+  }
+  .program-open strong {
+    font-size: 14px;
+  }
+  .program-row > span {
+    font-size: 10px;
+  }
+  .chapter-tools span {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  header {
+    height: auto;
+    min-height: 80px;
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  header > .spacer {
+    display: none;
+  }
+  header > .menu-link {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  header > .brand {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  header > .clients {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  header > .connection {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 8px;
+  }
+  header > .global-context {
+    grid-column: 2/4;
+    grid-row: 2;
+    max-width: none;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    font-size: 11px;
+    text-align: right;
+  }
+  header .avatar {
+    width: 22px;
+    height: 22px;
+    font-size: 9px;
+  }
+  header .avatars {
+    padding: 0;
+  }
+}
+.rail-label {
+  color: var(--live);
+}
