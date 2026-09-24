@@ -30,6 +30,7 @@ def site_name():
 
 
 def update_check_loop():
+    time.sleep(86400)
     while True:
         try:
             subprocess.run([UPDATE_SCRIPT, "--check"], timeout=60, check=False)
@@ -66,6 +67,11 @@ def index():
             update_available = available_file.read().strip()
     except OSError:
         update_available = ""
+    if update_status.startswith("Updated from"):
+        try:
+            os.remove(UPDATE_STATUS)
+        except OSError:
+            pass
     return render_template("index.html", current_url=current_url, site_name=site_name(), version=app_version(), update_status=update_status, update_available=update_available)
 
 
