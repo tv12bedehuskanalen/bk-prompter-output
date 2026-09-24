@@ -10,11 +10,8 @@ AVAILABLE_FILE="$INSTALL_DIR/update-available"
 mkdir -p "$INSTALL_DIR"
 echo "Checking for updates…" > "$STATUS_FILE"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
-api="https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest"
-curl_args=(-fsSL -H 'Accept: application/vnd.github+json')
-[[ -n "${GITHUB_TOKEN:-}" ]] && curl_args+=(-H "Authorization: Bearer $GITHUB_TOKEN")
-release=$(curl "${curl_args[@]}" "$api")
-tag=$(printf '%s' "$release" | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')
+latest_url=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/$GITHUB_REPOSITORY/releases/latest")
+tag=${latest_url##*/}
 current=$(tr -d 'v[:space:]' < "$INSTALL_DIR/VERSION" 2>/dev/null || true)
 latest=${tag#v}
 if [[ "${1:-}" == "--check" ]]; then
