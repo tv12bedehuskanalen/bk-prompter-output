@@ -30,7 +30,7 @@ def site_name():
 def index():
     if request.method == "POST":
         if "software_update" in request.form:
-            subprocess.Popen(["sudo", "-n", UPDATE_SCRIPT], start_new_session=True)
+            subprocess.Popen([UPDATE_SCRIPT], start_new_session=True)
         elif "update" in request.form:
             new_url = request.form.get("url", "").strip()
             if new_url:

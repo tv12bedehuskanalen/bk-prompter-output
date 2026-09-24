@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
-CONFIG=/etc/bk-prompter-updater.conf
 INSTALL_DIR=${BK_INSTALL_DIR:-$HOME/bk-prompter}
+CONFIG="$INSTALL_DIR/updater.conf"
 STATUS_FILE="$INSTALL_DIR/update-status"
 [[ -r "$CONFIG" ]] && . "$CONFIG"
 : "${GITHUB_REPOSITORY:?Set GITHUB_REPOSITORY in $CONFIG (owner/repository)}"
@@ -26,6 +26,7 @@ install -m 0644 "$source/app.py" "$INSTALL_DIR/app.py"
 install -m 0644 "$source/VERSION" "$INSTALL_DIR/VERSION"
 install -m 0644 "$source/templates/index.html" "$INSTALL_DIR/templates/index.html"
 install -m 0755 "$source/kiosk-watcher.sh" "$INSTALL_DIR/kiosk-watcher.sh"
+install -m 0755 "$source/update-bk-prompter.sh" "$INSTALL_DIR/update-bk-prompter.sh"
 pkill -x python3 2>/dev/null || true; sleep 1
 nohup python3 "$INSTALL_DIR/app.py" >> "$INSTALL_DIR/webserver.log" 2>&1 &
 sleep 2
