@@ -4,8 +4,6 @@ import socket
 import subprocess
 import threading
 import time
-from urllib.parse import urljoin, urlparse
-from urllib.request import Request, urlopen
 
 app = Flask(__name__, static_folder="branding", static_url_path="/branding")
 DEFAULT_URL = "http://10.144.144.162:7890/output"
@@ -99,46 +97,6 @@ def index():
             pass
     return render_template("index.html", current_url=current_url, site_name=site_name(), full_hostname=full_hostname(), page_title=page_title(), version=app_version(), update_status=update_status, update_available=update_available)
 
-
-@app.get("/preview")
-def preview():
-    """Fetch only the saved output URL through the Pi for remote previews."""
-    try:
-        with open(URL_FILE, encoding="utf-8") as url_file:
-            target = url_file.read().strip()
-        request = Request(target, headers={"User-Agent": "BK-Prompter-Preview/1.0"})
-        with urlopen(request, timeout=10) as response:
-            body = response.read()
-            content_type = response.headers.get("Content-Type", "text/html; charset=utf-8")
-        if content_type.startswith("text/html"):
-            html = body.decode("utf-8", errors="replace")
-            html = html.replace("<head>", '<head><base href="/preview-assets/">', 1)
-            body = html.encode("utf-8")
-        return body, 200, {"Content-Type": content_type, "Cache-Control": "no-store"}
-    except Exception as error:
-        return f"Preview unavailable: {error}", 502, {"Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store"}
-
-
-@app.get("/preview-assets/<path:asset_path>")
-def preview_asset(asset_path):
-    """Proxy same-origin relative assets from the saved output URL."""
-    try:
-        with open(URL_FILE, encoding="utf-8") as url_file:
-            target = url_file.read().strip()
-        parsed = urlparse(target)
-        if not parsed.scheme or not parsed.netloc or ".." in asset_path.split("/"):
-            return "Invalid preview asset", 400
-        base = target.rsplit("/", 1)[0] + "/"
-        asset_url = urljoin(base, asset_path)
-        asset_parsed = urlparse(asset_url)
-        if asset_parsed.scheme != parsed.scheme or asset_parsed.netloc != parsed.netloc:
-            return "Preview asset outside output origin", 403
-        with urlopen(Request(asset_url, headers={"User-Agent": "BK-Prompter-Preview/1.0"}), timeout=10) as response:
-            body = response.read()
-            content_type = response.headers.get("Content-Type", "application/octet-stream")
-        return body, 200, {"Content-Type": content_type, "Cache-Control": "no-store"}
-    except Exception as error:
-        return f"Preview asset unavailable: {error}", 502, {"Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store"}
 
 
 @app.get("/update-status")
