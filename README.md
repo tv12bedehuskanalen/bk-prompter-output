@@ -1,32 +1,31 @@
 # BK Prompter Output
 
-Raspberry Pi kiosk control page for the BK Prompter output system.
+Raspberry Pi-kiosk for BK Prompter Output.
 
-The deployable files are in `raspberry-pi/`. The current release is recorded in `raspberry-pi/VERSION`.
+De installerbare filene ligger i `raspberry-pi/`. Gjeldende versjon står i `raspberry-pi/VERSION`.
 
-## Install on Raspberry Pi OS
+## Installer på Raspberry Pi OS
 
-Use Raspberry Pi Imager to install the current Raspberry Pi OS Desktop (64-bit) image. Configure the user, hostname, network and SSH before first boot.
+Installer Raspberry Pi OS Desktop (64-bit) med Raspberry Pi Imager. Sett opp bruker, vertsnavn, nettverk og SSH før første oppstart.
 
-From this project folder on the Mac, copy and run the installer (replace `PI_ADDRESS` and the output URL as needed):
-
-```bash
-scp -r raspberry-pi bkadmin@PI_ADDRESS:/tmp/
-ssh -t bkadmin@PI_ADDRESS 'sudo bash /tmp/raspberry-pi/install-bk-prompter.sh --user bkadmin --url http://10.144.144.162:7890/output --resolution 1920x1080@60Hz'
-```
-
-Alternatively, install directly on the Pi without copying files from the Mac. This downloads the latest published GitHub release automatically:
+På selve Pi-en kan du installere siste publiserte versjon med én kommando:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tv12bedehuskanalen/bk-prompter-output/main/raspberry-pi/install-latest.sh | bash -s -- --user bkadmin --url http://10.144.144.162:7890/output --resolution 1920x1080@60Hz
 ```
 
-The command downloads the latest release on the Pi and invokes the privileged installer automatically. It asks for the Pi user's password when needed; no `scp` step or separate SSH install command is required. Omit `--user bkadmin` when the logged-in Pi user is the account to configure.
+Kommandoen laster ned siste GitHub-utgivelse direkte til Pi-en og starter installasjonen med nødvendige administratorrettigheter. Den ber om Pi-brukerens passord når det trengs. Du trenger ikke kopiere filer med `scp` eller kjøre en separat installasjonskommando over SSH. Utelat `--user bkadmin` dersom den innloggede brukeren er kontoen som skal konfigureres.
 
-The installer installs Chromium, Flask, `inotify-tools`, `unclutter` and the kiosk service. Restart the Pi when it finishes. The control page is then available at `http://PI_ADDRESS/`.
+Parametere:
 
-At graphical login, the kiosk watcher runs the local Flask control page, opens Chromium at the saved output URL and reloads Chromium when that URL changes. The URL is stored in `prompter_url.txt` in the user's home folder.
+- `--user BRUKER` – Raspberry Pi-brukeren som skal kjøre kiosken.
+- `--url URL` – URL-en som skal vises ved oppstart.
+- `--resolution MODUS` – valgfri oppløsning, for eksempel `1920x1080@60Hz`.
 
-The page derives its initial label from the first two hostname parts (`BK-AES-PROMPTER` becomes **BK AES**), while the title can be edited and saved. The footer shows the installed release version.
+Installereren installerer Chromium, Flask, `inotify-tools`, `unclutter` og kiosk-tjenestene. Start Pi-en på nytt når installasjonen er ferdig. Kontrollsiden er da tilgjengelig på `http://PI-ADRESSE/`.
 
-Re-running the installer refreshes the kiosk files while preserving the existing output URL.
+Ved grafisk innlogging starter kiosk-vakten den lokale Flask-kontrollsiden, åpner Chromium på den lagrede URL-en og laster Chromium på nytt når URL-en endres. URL-en lagres i `prompter_url.txt` i brukerens hjemmemappe.
+
+Kontrollsiden lager først visningsnavnet fra de to første delene av vertsnavnet (`BK-AES-PROMPTER` blir **BK AES**). Tittelen kan deretter endres og lagres. Gjeldende programversjon vises i oppdateringsfeltet.
+
+Det er trygt å kjøre installereren på nytt. Den oppdaterer kioskfilene og beholder eksisterende output-URL.
