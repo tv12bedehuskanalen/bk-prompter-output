@@ -4,6 +4,8 @@ import socket
 import subprocess
 import threading
 import time
+from urllib.parse import urljoin
+from urllib.request import Request, urlopen
 
 app = Flask(__name__, static_folder="branding", static_url_path="/branding")
 DEFAULT_URL = "http://10.144.144.162:7890/output"
@@ -96,6 +98,26 @@ def index():
         except OSError:
             pass
     return render_template("index.html", current_url=current_url, site_name=site_name(), full_hostname=full_hostname(), page_title=page_title(), version=app_version(), update_status=update_status, update_available=update_available)
+
+
+@app.get("/preview")
+def preview():
+    """Fetch only the saved output URL through the Pi for remote previews."""
+    try:
+        with open(URL_FILE, encoding="utf-8") as url_file:
+            target = url_file.read().strip()
+        request = Request(target, headers={"User-Agent": "BK-Prompter-Preview/1.0"})
+        with urlopen(request, timeout=10) as response:
+            body = response.read()
+            content_type = response.headers.get("Content-Type", "text/html; charset=utf-8")
+        if content_type.startswith("text/html"):
+            html = body.decode("utf-8", errors="replace")
+            base = urljoin(target, "/")
+            html = html.replace("<head>", f'<head><base href="{base}">', 1)
+            body = html.encode("utf-8")
+        return body, 200, {"Content-Type": content_type, "Cache-Control": "no-store"}
+    except Exception as error:
+        return f"Preview unavailable: {error}", 502, {"Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store"}
 
 
 @app.get("/update-status")

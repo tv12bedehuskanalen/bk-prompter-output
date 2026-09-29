@@ -148,7 +148,7 @@
         try {
           const url = new URL(value);
           if (!/^https?:$/.test(url.protocol)) throw new Error();
-          preview.src = url.href;
+          preview.src = "/preview";
           previewEmpty.hidden = true;
         } catch (_) {
           preview.removeAttribute("src");
@@ -162,7 +162,7 @@
           if (!/^https?:$/.test(url.protocol)) throw new Error();
           previewEmpty.hidden = true;
           preview.src = "about:blank";
-          requestAnimationFrame(() => { preview.src = url.href; });
+          requestAnimationFrame(() => { preview.src = "/preview"; });
         } catch (_) {
           updatePreview();
         }
