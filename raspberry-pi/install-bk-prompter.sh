@@ -44,7 +44,7 @@ done
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y chromium python3-flask inotify-tools unclutter kanshi
+apt-get install -y chromium python3-flask inotify-tools unclutter kanshi swaybg
 
 INSTALL_DIR="$TARGET_HOME/bk-prompter"
 install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 "$INSTALL_DIR/templates"
@@ -59,6 +59,11 @@ install -o "$TARGET_USER" -g "$TARGET_USER" -m 0644 "$SCRIPT_DIR/templates/index
 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0644 "$SCRIPT_DIR/branding/symbol.svg" "$INSTALL_DIR/branding/symbol.svg"
 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 "$SCRIPT_DIR/launch-kiosk.sh" "$INSTALL_DIR/launch-kiosk.sh"
 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 "$SCRIPT_DIR/kiosk-watcher.sh" "$INSTALL_DIR/kiosk-watcher.sh"
+
+# The install directory may already exist from an older image and be owned by
+# root.  Normalize the complete tree so the kiosk user can create its logs and
+# run updates without a second manual repair step.
+chown -R "$TARGET_USER:$TARGET_USER" "$INSTALL_DIR"
 
 if [[ ! -s "$TARGET_HOME/prompter_url.txt" ]]; then
   printf '%s\n' "$DEFAULT_URL" > "$TARGET_HOME/prompter_url.txt"
