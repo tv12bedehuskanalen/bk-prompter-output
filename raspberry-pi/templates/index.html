@@ -82,8 +82,8 @@
       input { width: 100%; border: 1px solid #34484c; border-radius: 8px; background: #0a1416; color: var(--text); padding: 13px 14px; font: inherit; outline-offset: 3px; }
       input:focus { border-color: var(--accent); outline: 2px solid #32c6cb38; }
       .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
-      .display-mode { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); font-size: 11px; }
-      .display-mode button { min-height: 30px; padding: 5px 9px; font-size: 11px; }
+      .display-mode { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: var(--muted); font-size: 11px; }
+      .display-mode select { min-height: 28px; border: 1px solid #303f42; border-radius: 7px; background: #1b2d30; color: var(--text); padding: 4px 8px; font: inherit; font-size: 11px; }
       .software { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 11px; color: var(--muted); }
       .software button { min-height: 32px; padding: 6px 10px; font-size: 11px; }
       .progress { display: none; height: 4px; margin-top: 10px; overflow: hidden; border-radius: 4px; background: #263b3e; }
@@ -142,7 +142,7 @@
             <button type="button" data-action="refresh">Last inn på nytt</button>
             <button class="danger" type="button" data-action="reboot">Restart Pi</button>
           </div>
-          <div class="display-mode"><span>Skjerm:</span><button type="button" data-display-mode="fullscreen">16:9</button><button type="button" data-display-mode="4:3">4:3</button></div>
+          <div class="display-mode"><label for="displayMode">Skjermmodus</label><select id="displayMode"><option value="">Velg modus …</option><option value="fullscreen">16:9 – fullskjerm</option><option value="4:3">4:3 – TP-900</option></select></div>
           <div class="software"><div><span id="softwareStatus">{{ 'Nåværende versjon: ' ~ version ~ (' · Ny versjon tilgjengelig: ' ~ update_available if update_available else ' · Oppdatert') }}</span><p id="message" role="status" aria-live="polite">{{ update_status }}</p></div><button type="button" data-action="software-update">Oppdater</button></div>
           <div class="progress" id="updateProgress" aria-hidden="true"></div>
         </div>
@@ -234,13 +234,15 @@
         setTimeout(poll, 1500);
       }
       document.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => send(button.dataset.action)));
-      document.querySelectorAll("[data-display-mode]").forEach(button => button.addEventListener("click", async () => {
-        const data = new FormData(); data.append("display_mode", button.dataset.displayMode);
-        button.disabled = true;
-        try { const response = await fetch("/", { method: "POST", body: data }); if (!response.ok) throw new Error(); message.textContent = `Skjerm satt til ${button.dataset.displayMode}.`; }
+      document.getElementById("displayMode").addEventListener("change", async event => {
+        const mode = event.target.value;
+        if (!mode) return;
+        const data = new FormData(); data.append("display_mode", mode);
+        event.target.disabled = true;
+        try { const response = await fetch("/", { method: "POST", body: data }); if (!response.ok) throw new Error(); message.textContent = `Skjerm satt til ${mode === "4:3" ? "4:3" : "16:9"}.`; }
         catch (_) { message.textContent = "Kunne ikke endre skjermmodus."; }
-        finally { button.disabled = false; }
-      }));
+        finally { event.target.disabled = false; event.target.value = ""; }
+      });
       input.addEventListener("keydown", event => { if (event.key === "Enter") send("update"); });
       function resetToOutput() {
         input.value = outputUrl;
