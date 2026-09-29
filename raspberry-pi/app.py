@@ -72,6 +72,11 @@ def index():
                     url_file.write(new_url)
         elif "refresh" in request.form:
             os.utime(URL_FILE, None)
+        elif "display_mode" in request.form:
+            mode = request.form.get("display_mode", "").strip()
+            modes = {"fullscreen": "1920x1080@60Hz", "4:3": "1024x768@60Hz"}
+            if mode in modes:
+                subprocess.run(["wlr-randr", "--output", "HDMI-A-1", "--mode", modes[mode]], check=False)
         elif "reboot" in request.form:
             subprocess.Popen(["sudo", "-n", "/usr/bin/systemctl", "reboot"])
             return redirect(url_for("index"))
