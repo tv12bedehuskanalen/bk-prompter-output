@@ -20,7 +20,7 @@ load_url() {
   pkill -x chromium 2>/dev/null || true
   chromium --kiosk --noerrdialogs --disable-infobars --no-first-run \
     --ozone-platform=wayland --enable-features=WebUIDarkMode --force-dark-mode \
-    --password-store=basic "$target_url" &
+    --password-store=basic --disable-features=Translate "$target_url" &
 }
 
 load_url

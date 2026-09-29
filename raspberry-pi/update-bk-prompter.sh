@@ -38,6 +38,7 @@ install -m 0755 "$source/kiosk-watcher.sh" "$INSTALL_DIR/kiosk-watcher.sh"
 install -m 0755 "$source/update-bk-prompter.sh" "$INSTALL_DIR/update-bk-prompter.sh"
 pkill -x python3 2>/dev/null || true; sleep 1
 pkill -x wf-panel-pi 2>/dev/null || true
+pkill -f 'lwrespawn /usr/bin/wf-panel-pi' 2>/dev/null || true
 pkill -x wf-panel 2>/dev/null || true
 pkill -x waybar 2>/dev/null || true
 pkill -x swaybg 2>/dev/null || true
