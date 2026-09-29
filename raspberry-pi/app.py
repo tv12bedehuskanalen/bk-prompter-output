@@ -49,7 +49,7 @@ def update_check_loop():
     time.sleep(86400)
     while True:
         try:
-            subprocess.run([UPDATE_SCRIPT, "--check"], timeout=60, check=False)
+            subprocess.run(["sudo", "-n", UPDATE_SCRIPT, "--check"], timeout=60, check=False)
         except (OSError, subprocess.SubprocessError):
             pass
         time.sleep(86400)
@@ -59,7 +59,7 @@ def update_check_loop():
 def index():
     if request.method == "POST":
         if "software_update" in request.form:
-            subprocess.Popen([UPDATE_SCRIPT], start_new_session=True)
+            subprocess.Popen(["sudo", "-n", UPDATE_SCRIPT], start_new_session=True)
         elif "save_title" in request.form:
             title = request.form.get("title", "").strip()[:80]
             if title:
@@ -116,7 +116,7 @@ def update_status_api():
 @app.get("/update-check")
 def update_check_api():
     try:
-        subprocess.run([UPDATE_SCRIPT, "--check"], timeout=60, check=False)
+        subprocess.run(["sudo", "-n", UPDATE_SCRIPT, "--check"], timeout=60, check=False)
     except (OSError, subprocess.SubprocessError):
         pass
     return update_status_api()
