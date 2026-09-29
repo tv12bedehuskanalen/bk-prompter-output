@@ -14,12 +14,15 @@ latest_url=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/$
 tag=${latest_url##*/}
 current=$(tr -d 'v[:space:]' < "$INSTALL_DIR/VERSION" 2>/dev/null || true)
 latest=${tag#v}
+is_current_or_newer() {
+  [[ "$(printf '%s\n' "$current" "$latest" | sort -V | tail -n 1)" == "$current" ]]
+}
 if [[ "${1:-}" == "--check" ]]; then
-  if [[ "$current" == "$latest" ]]; then rm -f "$AVAILABLE_FILE"; echo "Up to date ($tag)." > "$STATUS_FILE";
+  if is_current_or_newer; then rm -f "$AVAILABLE_FILE"; echo "Up to date (v$current)." > "$STATUS_FILE";
   else printf '%s\n' "$tag" > "$AVAILABLE_FILE"; echo "Update available: $tag." > "$STATUS_FILE"; fi
   exit 0
 fi
-if [[ "$current" == "$latest" ]]; then echo "Already up to date ($tag)." > "$STATUS_FILE"; exit 0; fi
+if is_current_or_newer; then rm -f "$AVAILABLE_FILE"; echo "Already up to date (v$current)." > "$STATUS_FILE"; exit 0; fi
 archive="$tmp/release.tar.gz"
 curl "${curl_args[@]}" -L "https://github.com/$GITHUB_REPOSITORY/archive/refs/tags/$tag.tar.gz" -o "$archive"
 mkdir "$tmp/extract"; tar -xzf "$archive" -C "$tmp/extract"
