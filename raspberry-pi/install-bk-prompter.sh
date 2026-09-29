@@ -45,6 +45,11 @@ done
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y chromium python3-flask inotify-tools unclutter kanshi swaybg
+install -d -m 0755 /etc/chromium/policies/managed
+cat > /etc/chromium/policies/managed/bk-prompter.json <<'EOF'
+{"TranslateEnabled": false}
+EOF
+chmod 0644 /etc/chromium/policies/managed/bk-prompter.json
 
 INSTALL_DIR="$TARGET_HOME/bk-prompter"
 install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 "$INSTALL_DIR/templates"

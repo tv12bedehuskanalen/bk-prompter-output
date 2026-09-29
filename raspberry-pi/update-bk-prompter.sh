@@ -31,6 +31,9 @@ source=$(find "$tmp/extract" -path '*/raspberry-pi/app.py' -print -quit); source
 backup="$INSTALL_DIR.backup.$(date +%Y%m%d%H%M%S)"; cp -a "$INSTALL_DIR" "$backup"
 apt-get update -qq
 apt-get install -y -qq swaybg >/dev/null
+install -d -m 0755 /etc/chromium/policies/managed
+printf '%s\n' '{"TranslateEnabled": false}' > /etc/chromium/policies/managed/bk-prompter.json
+chmod 0644 /etc/chromium/policies/managed/bk-prompter.json
 install -m 0644 "$source/app.py" "$INSTALL_DIR/app.py"
 install -m 0644 "$source/VERSION" "$INSTALL_DIR/VERSION"
 install -m 0644 "$source/templates/index.html" "$INSTALL_DIR/templates/index.html"
