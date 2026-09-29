@@ -15,6 +15,14 @@ scp -r raspberry-pi bkadmin@PI_ADDRESS:/tmp/
 ssh -t bkadmin@PI_ADDRESS 'sudo bash /tmp/raspberry-pi/install-bk-prompter.sh --user bkadmin --url http://10.144.144.162:7890/output --resolution 1920x1080@60Hz'
 ```
 
+Alternatively, install directly on the Pi without copying files from the Mac. This downloads the latest published GitHub release automatically:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tv12bedehuskanalen/bk-prompter-output/main/raspberry-pi/install-latest.sh | bash -s -- --user bkadmin --url http://10.144.144.162:7890/output --resolution 1920x1080@60Hz
+```
+
+The command downloads the latest release on the Pi and invokes the privileged installer automatically. It asks for the Pi user's password when needed; no `scp` step or separate SSH install command is required. Omit `--user bkadmin` when the logged-in Pi user is the account to configure.
+
 The installer installs Chromium, Flask, `inotify-tools`, `unclutter` and the kiosk service. Restart the Pi when it finishes. The control page is then available at `http://PI_ADDRESS/`.
 
 At graphical login, the kiosk watcher runs the local Flask control page, opens Chromium at the saved output URL and reloads Chromium when that URL changes. The URL is stored in `prompter_url.txt` in the user's home folder.
