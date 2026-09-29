@@ -38,7 +38,7 @@ id "$TARGET_USER" >/dev/null
 TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 [[ -d "$TARGET_HOME" ]] || { echo "Home directory missing for $TARGET_USER"; exit 1; }
 
-for required in app.py VERSION update-bk-prompter.sh launch-kiosk.sh kiosk-watcher.sh bk-kiosk-http.socket bk-kiosk-http.service templates/index.html branding/symbol.svg; do
+for required in app.py VERSION update-bk-prompter.sh launch-kiosk.sh kiosk-watcher.sh bk-kiosk-http.socket bk-kiosk-http.service templates/index.html branding/symbol.svg branding/favicon.ico; do
   [[ -f "$SCRIPT_DIR/$required" ]] || { echo "Installer is missing $required"; exit 1; }
 done
 
@@ -57,6 +57,7 @@ chown "$TARGET_USER:$TARGET_USER" "$INSTALL_DIR/updater.conf"
 chmod 0644 "$INSTALL_DIR/updater.conf"
 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0644 "$SCRIPT_DIR/templates/index.html" "$INSTALL_DIR/templates/index.html"
 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0644 "$SCRIPT_DIR/branding/symbol.svg" "$INSTALL_DIR/branding/symbol.svg"
+install -o "$TARGET_USER" -g "$TARGET_USER" -m 0644 "$SCRIPT_DIR/branding/favicon.ico" "$INSTALL_DIR/branding/favicon.ico"
 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 "$SCRIPT_DIR/launch-kiosk.sh" "$INSTALL_DIR/launch-kiosk.sh"
 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 "$SCRIPT_DIR/kiosk-watcher.sh" "$INSTALL_DIR/kiosk-watcher.sh"
 
