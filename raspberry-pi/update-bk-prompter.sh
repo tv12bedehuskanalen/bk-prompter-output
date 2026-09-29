@@ -26,6 +26,8 @@ mkdir "$tmp/extract"; tar -xzf "$archive" -C "$tmp/extract"
 source=$(find "$tmp/extract" -path '*/raspberry-pi/app.py' -print -quit); source=${source%/app.py}
 [[ -f "$source/VERSION" ]] || { echo "Release has no raspberry-pi payload." > "$STATUS_FILE"; exit 1; }
 backup="$INSTALL_DIR.backup.$(date +%Y%m%d%H%M%S)"; cp -a "$INSTALL_DIR" "$backup"
+apt-get update -qq
+apt-get install -y -qq swaybg >/dev/null
 install -m 0644 "$source/app.py" "$INSTALL_DIR/app.py"
 install -m 0644 "$source/VERSION" "$INSTALL_DIR/VERSION"
 install -m 0644 "$source/templates/index.html" "$INSTALL_DIR/templates/index.html"
@@ -35,6 +37,11 @@ install -m 0755 "$source/launch-kiosk.sh" "$INSTALL_DIR/launch-kiosk.sh"
 install -m 0755 "$source/kiosk-watcher.sh" "$INSTALL_DIR/kiosk-watcher.sh"
 install -m 0755 "$source/update-bk-prompter.sh" "$INSTALL_DIR/update-bk-prompter.sh"
 pkill -x python3 2>/dev/null || true; sleep 1
+pkill -x wf-panel-pi 2>/dev/null || true
+pkill -x wf-panel 2>/dev/null || true
+pkill -x waybar 2>/dev/null || true
+pkill -x swaybg 2>/dev/null || true
+nohup swaybg -c '#000000' >/dev/null 2>&1 &
 nohup python3 "$INSTALL_DIR/app.py" >> "$INSTALL_DIR/webserver.log" 2>&1 &
 sleep 2
 curl -fsS http://127.0.0.1:8443/ >/dev/null || { cp -a "$backup"/. "$INSTALL_DIR"/; exit 1; }
